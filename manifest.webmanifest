@@ -1,0 +1,30 @@
+{
+  "name": "Fast Pass – ระบบรันเตียง MICU",
+  "short_name": "Fast Pass",
+  "description": "ระบบรันคิวรับผู้ป่วย RCU1, MICU2 Lt.1, RCU2, MICU2 Lt.2, MICU 7Lt",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F8FA",
+  "theme_color": "#3D7BA8",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
