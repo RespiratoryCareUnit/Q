@@ -1,0 +1,3131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0154ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RCU1">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>RCU บันทึกเวร — ตัวอย่าง</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0d3b8c; --navy-deep:#082a66; --sky:#d1e1fb; --paper:#f7f5ef;
+    --ink:#0e121a; --line:#b1bfdf; --amber:#c47a1f; --ok:#1f7a4d; --danger:#b9432f;
+    --shift-night:#3a4a8f; --shift-morn:#c47a1f; --shift-aft:#1f7a4d;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"IBM Plex Sans Thai","Sarabun",system-ui,sans-serif;background:var(--paper);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy-deep));color:#ffffff;padding:18px 16px 14px;}
+  header h1{margin:0;font-size:1.15rem;font-weight:700;}
+  header p{margin:4px 0 0;font-size:.78rem;opacity:.85;}
+  a.back{color:#9fc1ff;font-size:.75rem;text-decoration:none;}
+
+  .toprow{display:flex;gap:8px;padding:12px 16px;background:#ffffff;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center;}
+  .toprow label{font-size:.75rem;color:#2a2a2a;display:block;margin-bottom:2px;}
+  .toprow input[type=date]{padding:7px 8px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;}
+  .shift-picker{display:flex;gap:6px;}
+  .shift-btn{border:1.5px solid var(--line);background:#ffffff;border-radius:8px;padding:7px 12px;font-size:.82rem;cursor:pointer;font-weight:600;color:#2a2a2a;}
+  .shift-btn[data-shift="ดึก"].active{background:var(--shift-night);color:#ffffff;border-color:var(--shift-night);}
+  .shift-btn[data-shift="เช้า"].active{background:var(--shift-morn);color:#ffffff;border-color:var(--shift-morn);}
+  .shift-btn[data-shift="บ่าย"].active{background:var(--shift-aft);color:#ffffff;border-color:var(--shift-aft);}
+
+  nav.tabs{display:flex;overflow-x:auto;background:#ffffff;border-bottom:2px solid var(--line);position:sticky;top:0;z-index:5;-webkit-overflow-scrolling:touch;}
+  nav.tabs button{flex:0 0 auto;padding:11px 14px;background:none;border:none;font-size:.8rem;font-weight:600;color:#3d424c;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;}
+  nav.tabs button.active{color:var(--navy);border-bottom-color:var(--navy);}
+
+  main{padding:14px 16px 28px;max-width:720px;margin:0 auto;}
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+
+  .card{background:#ffffff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .card h3{margin:0 0 10px;font-size:.88rem;color:var(--navy-deep);border-left:4px solid var(--navy);padding-left:8px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .field{margin-bottom:8px;}
+  .field label{display:block;font-size:.72rem;color:#333333;margin-bottom:3px;}
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
+    width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:.85rem;font-family:inherit;background:#ffffff;
+  }
+  .field textarea{resize:vertical;min-height:38px;}
+  .mini-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+  .mini-table th{background:var(--sky);padding:6px 4px;font-size:.7rem;color:var(--navy-deep);}
+  .mini-table td{padding:4px;border-bottom:1px solid #e1e1e1;}
+  .mini-table input{width:100%;padding:5px;border:1px solid var(--line);border-radius:5px;font-size:.8rem;text-align:center;}
+
+  .proc-group h4{font-size:.76rem;color:var(--amber);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.02em;}
+  .month-range-box{background:#ffffff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .mr-title{font-size:.84rem;font-weight:700;color:var(--navy-deep);margin-bottom:8px;}
+  .mr-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .mr-row label{font-size:.75rem;color:#333333;}
+  .mr-row input[type=month]{flex:1;min-width:120px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:.82rem;font-family:inherit;}
+  .month-range-box .export-btn{margin-bottom:0;}
+  .exp-mode-row{display:flex;gap:6px;margin-bottom:10px;}
+  .exp-mode-btn{flex:1;padding:8px;border:1.5px solid var(--navy);background:#ffffff;color:var(--navy);border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;}
+  .exp-mode-btn.active{background:var(--navy);color:#ffffff;}
+
+  .proc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#ffffff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px;flex-wrap:wrap;}
+  .proc-toolbar-btns{display:flex;gap:6px;align-items:center;}
+  .proc-shift-tag{font-size:.74rem;font-weight:700;padding:4px 9px;border-radius:6px;color:#ffffff;}
+  .proc-shift-tag.shift-ดึก{background:var(--shift-night);}
+  .proc-shift-tag.shift-เช้า{background:var(--shift-morn);}
+  .proc-shift-tag.shift-บ่าย{background:var(--shift-aft);}
+  .btn-proc-copy{background:#ffffff;border:1.5px solid var(--navy);color:var(--navy);border-radius:6px;padding:4px 8px;font-size:.68rem;font-weight:700;cursor:pointer;}
+  .proc-row input:disabled{background:#dde1e9;color:#3c3c3c;opacity:1;}
+  .proc-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e5e5;}
+  .proc-row .lbl{flex:1;font-size:.8rem;}
+  .proc-row .unit{font-size:.68rem;color:#4c4c4c;width:34px;}
+  .proc-row input{width:56px;padding:6px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:.85rem;}
+
+  .diag-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #e5e5e5;}
+  .diag-row label{flex:1;font-size:.82rem;}
+  .diag-row input{width:56px;padding:6px;border:1px solid var(--line);border-radius:6px;text-align:center;}
+
+  .staff-select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;margin-bottom:10px;}
+
+  .export-btn{display:flex;align-items:center;gap:10px;width:100%;background:#ffffff;border:1.5px solid var(--navy);color:var(--navy-deep);border-radius:10px;padding:13px 14px;font-size:.85rem;font-weight:700;margin-bottom:10px;cursor:pointer;text-align:left;}
+  .export-btn .icon{font-size:1.3rem;}
+  .export-btn small{display:block;font-weight:400;color:#3c3c3c;font-size:.72rem;margin-top:2px;}
+  .export-btn:active{background:var(--sky);}
+  .export-all{background:var(--navy);color:#ffffff;border-color:var(--navy);}
+  .export-all small{color:rgba(255,255,255,.8);}
+
+  .note{font-size:.74rem;color:#8a6d1f;background:#fff1d1;border:1px solid #f0dfa8;border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;}
+  .syncbar{background:#dde7f7;border-bottom:1px solid var(--line);padding:6px 14px;text-align:center;}
+  
+  
+  .syncbar{padding:0;border:0;}
+    
+
+  .prev-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.55);
+                display:flex;align-items:center;justify-content:center;padding:6px;}
+  .prev-box{background:#fff;border-radius:12px;width:100%;max-width:1200px;
+            height:calc(100vh - 12px);height:calc(100dvh - 12px);
+            display:flex;flex-direction:column;overflow:hidden;}
+  .prev-head{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--navy);color:#fff;}
+  .prev-head span{flex:1;font-weight:700;font-size:.86rem;}
+  .prev-head button{background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.9rem;
+                    width:32px;height:32px;border-radius:8px;cursor:pointer;}
+  .prev-body{flex:1;min-height:0;overflow:auto;padding:6px;background:#f4f6fa;}
+  /* แสดงขนาดเท่าไฟล์ PDF จริง (กว้าง 780px) เพื่อให้แคปจอแล้วได้เหมือนกัน */
+  .prev-fit{margin:0 auto;overflow:hidden;}
+  .prev-head button.prev-zoom{width:auto;padding:0 10px;font-size:.72rem;font-weight:700;}
+  .prev-sheet{width:780px;padding:20px;background:#fff;margin:0 auto;}
+  .prev-foot{padding:6px 10px;border-top:1px solid var(--line);}
+  .prev-foot button{width:100%;background:var(--ok);color:#fff;border:none;border-radius:8px;
+                    padding:9px;font-size:.85rem;font-weight:700;cursor:pointer;}
+  .prev-foot button:disabled{opacity:.6;}
+  .report-title{font-weight:700;font-size:1rem;margin:0 0 4px;text-align:center;}
+
+  .view-btn{display:block;width:calc(100% - 8px);background:var(--navy);color:#ffffff;border:none;border-radius:8px;padding:9px;font-size:.8rem;font-weight:700;margin:0 4px 12px;cursor:pointer;}
+  .report-sub{font-size:.86rem;margin:0 0 14px;text-align:center;color:#555;}
+  table.report-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  table.report-table th, table.report-table td{border:1px solid #999;padding:5px 7px;text-align:left;white-space:pre-line;}
+  table.report-table th{background:#eef1f8;color:var(--navy-deep);text-align:center;}
+  table.report-table td.rlabel{font-weight:600;background:#fbfbfd;width:32%;}
+  table.report-table td.rshift{text-align:center;}
+  tr.rsection td{background:var(--sky);font-weight:700;color:var(--navy-deep);}
+
+  .popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999;padding:24px;}
+  .popup-box{background:#ffffff;border-radius:14px;padding:20px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+  .popup-box p{margin:0 0 16px;font-size:.85rem;line-height:1.6;color:var(--ink);white-space:pre-line;}
+  .popup-ok-btn{width:100%;background:var(--navy);color:#ffffff;border:none;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer;}
+
+  table.daily-table input.input-invalid{border-color:var(--danger) !important;background:#fbd9d5 !important;color:var(--danger) !important;}
+  .yn{display:flex;gap:14px;}
+  .yn label{display:flex;align-items:center;gap:4px;font-size:.8rem;}
+
+  .local-shift-picker{display:none;gap:6px;padding:10px 16px;background:#ffffff;border-bottom:1px solid var(--line);align-items:center;}
+  .local-shift-picker span{font-size:.75rem;color:#333333;margin-right:4px;}
+
+  .daily-section-title{font-size:.82rem;font-weight:700;color:var(--navy-deep);margin:16px 4px 8px;}
+  .scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 1px 3px rgba(13,59,140,.06);}
+  table.daily-table{width:100%;min-width:480px;border-collapse:collapse;font-size:.78rem;background:#ffffff;table-layout:fixed;}
+  table.daily-table.staff-table{min-width:620px;}
+  table.daily-table.p4pd-table{min-width:0;}
+  table.daily-table.p4pd-table input{min-width:0;font-size:.78rem;padding:6px 2px;}
+  table.daily-table.p4pd-table td.label{font-size:.64rem;}
+  table.daily-table.p4pd-table th{font-size:.66rem;}
+  table.daily-table tr.p4pd-linked td{background:#e9edf5;}
+  table.daily-table tr.p4pd-linked input{background:#dde1e9;color:#2a2a2a;font-weight:600;}
+  .p4pd-hint{font-size:.66rem;color:#444444;margin:6px 4px 0;}
+  .p4pd-submit-row{display:flex;margin:10px 0 0;}
+  .p4pd-submit-spacer{flex:0 0 104px;}
+  .p4pd-submit-cell{flex:1;min-width:0;margin:0 2px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#ffffff;border:1px solid var(--line);border-radius:8px;padding:7px 4px;}
+  .p4pd-submit-label{font-size:.68rem;font-weight:700;color:#ffffff;padding:2px 8px;border-radius:5px;}
+  .p4pd-submit-label.shift-ดึก{background:var(--shift-night);}
+  .p4pd-submit-label.shift-เช้า{background:var(--shift-morn);}
+  .p4pd-submit-label.shift-บ่าย{background:var(--shift-aft);}
+  table.daily-table.p4pd-table input:disabled{background:#dde1e9 !important;color:#444444 !important;opacity:1;}
+  table.daily-table .sticky-col, table.daily-table td.label{position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,.08);}
+  table.daily-table tr:first-child>th:first-child{z-index:4;}
+  table.daily-table th{background:var(--sky);color:var(--navy-deep);padding:6px 4px;font-size:.7rem;border:1px solid var(--line);white-space:nowrap;}
+  table.daily-table th.hd-ดึก{background:#bfc7eb;color:var(--shift-night);}
+  table.daily-table th.hd-เช้า{background:#f5d9b3;color:var(--shift-morn);}
+  table.daily-table th.hd-บ่าย{background:#b9dfc3;color:var(--shift-aft);}
+  table.daily-table td{padding:3px;border:1px solid var(--line);text-align:center;vertical-align:middle;}
+  table.daily-table td.label{text-align:left;padding-left:6px;font-size:.68rem;white-space:normal;line-height:1.25;background:#f7f7fb;}
+  table.daily-table input, table.daily-table select{width:100%;padding:6px 3px;border:1px solid var(--line);border-radius:5px;font-size:.8rem;text-align:center;font-family:inherit;min-width:52px;}
+  table.daily-table input[readonly]{background:#dde1e9;color:#2a2a2a !important;font-weight:700 !important;}
+  table.daily-table input:disabled, table.daily-table select:disabled{background:#dde1e9 !important;color:#3c3c3c !important;font-weight:400 !important;opacity:1;}
+
+  .event-card{border-radius:12px;padding:12px;margin-bottom:12px;}
+  .event-card.card-ดึก{background:#ede9c9;}
+  .event-card.card-เช้า{background:#f9d5e7;}
+  .event-card.card-บ่าย{background:#cbdff1;}
+  .event-card h4{margin:0 0 10px;font-size:.86rem;}
+  .event-card.card-ดึก h4{color:var(--shift-night);}
+  .event-card.card-เช้า h4{color:var(--shift-morn);}
+  .event-card.card-บ่าย h4{color:var(--shift-aft);}
+  .event-field{margin-bottom:8px;}
+  .event-field label{display:block;font-size:.7rem;color:#333333;margin-bottom:2px;}
+  .event-field input, .event-field select, .event-field textarea{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:.8rem;font-family:inherit;background:#ffffff;}
+  .event-field textarea{min-height:44px;resize:vertical;}
+  .event-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .event-field input[readonly]{background:#e1e1e1;color:#2a2a2a;}
+  .ic-wrap{margin-top:8px;}
+  .ic-empty,.ic-hint{font-size:.72rem;color:#444444;display:block;}
+  .ic-follow{display:flex;align-items:flex-start;gap:8px;background:#ffffff;border:1px solid var(--line);
+             border-radius:10px;padding:9px;margin-bottom:7px;}
+  .ic-follow input[type=checkbox]{width:19px;height:19px;flex:0 0 auto;margin-top:2px;}
+  .ic-follow-main{flex:1;min-width:0;font-size:.76rem;line-height:1.45;}
+  .ic-sub{display:block;font-size:.68rem;color:#363b48;}
+  .ic-warn{display:block;font-size:.68rem;color:#8a6d1f;background:#fff1d1;border:1px solid #f0dfa8;
+           border-radius:5px;padding:3px 6px;margin-top:4px;}
+  .ic-close-btn{background:#ffffff;border:1.5px solid var(--danger);color:var(--danger);border-radius:6px;
+                padding:3px 8px;font-size:.64rem;font-weight:700;cursor:pointer;flex:0 0 auto;}
+  .ic-add-follow,.ic-add-new{width:100%;background:#ffffff;border:1.5px dashed var(--navy);color:var(--navy);
+            border-radius:8px;padding:9px;font-size:.74rem;font-weight:700;cursor:pointer;}
+  .ic-card{background:#ffffff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;}
+  .ic-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .ic-head span{font-size:.74rem;font-weight:700;color:var(--navy-deep);}
+  .ic-saved{color:#14653a;font-size:.64rem;font-weight:700;margin-left:6px;white-space:nowrap;}
+  .ic-draft{border:1.5px solid var(--navy);}
+  .ic-cancel{background:#ffffff;border:1px solid var(--line);color:#3c3c3c;border-radius:6px;
+             padding:3px 9px;font-size:.64rem;cursor:pointer;}
+  .ic-need{background:#fbd9d5;border:1px solid #efa9a9;color:#8c2020;border-radius:6px;
+           padding:5px 8px;font-size:.66rem;margin-top:7px;}
+  .ic-add-row{display:flex;justify-content:flex-end;margin-top:8px;}
+  .ic-commit{background:#7fc79a;color:#ffffff;border:none;border-radius:5px;
+             padding:3px 10px;font-size:.64rem;font-weight:700;cursor:pointer;}
+  .ic-del{background:#ffffff;border:1.5px solid var(--danger);color:var(--danger);border-radius:6px;
+          padding:3px 9px;font-size:.66rem;font-weight:700;cursor:pointer;}
+  .ic-card label{display:block;font-size:.66rem;color:#333333;margin:6px 0 2px;}
+  .ic-card input,.ic-card select,.ic-card textarea{width:100%;padding:7px;border:1px solid var(--line);
+          border-radius:6px;font-size:.78rem;font-family:inherit;background:#ffffff;}
+  .ic-card input:disabled,.ic-card select:disabled,.ic-card textarea:disabled{background:#e5e5e5;color:#3c3c3c;opacity:1;}
+  .ic-patient{margin:6px 0;padding:7px 9px;background:#dde7f7;border-radius:7px;font-size:.72rem;line-height:1.45;}
+  .ic-found{color:var(--navy-deep);}
+  .ic-mode-btn{flex:1;padding:8px;border:1.5px solid var(--navy);background:#ffffff;color:var(--navy);
+               border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;}
+  .ic-mode-btn.active{background:var(--navy);color:#ffffff;}
+  .inc-wrap{margin-top:8px;}
+  .inc-card{background:#ffffff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;}
+  .inc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .inc-head span{font-size:.74rem;font-weight:700;color:var(--navy-deep);}
+  .inc-del{background:#ffffff;border:1.5px solid var(--danger);color:var(--danger);border-radius:6px;
+           padding:3px 9px;font-size:.66rem;font-weight:700;cursor:pointer;}
+  .inc-card label{display:block;font-size:.66rem;color:#333333;margin:6px 0 2px;}
+  .inc-card select,.inc-card input,.inc-card textarea{width:100%;padding:7px;border:1px solid var(--line);
+           border-radius:6px;font-size:.78rem;font-family:inherit;background:#ffffff;}
+  .inc-card select:disabled,.inc-card input:disabled,.inc-card textarea:disabled{background:#e5e5e5;color:#3c3c3c;opacity:1;}
+  .inc-warn{background:#fbd9d5;border:1px solid #efa9a9;color:#8c2020;border-radius:6px;
+            padding:6px 8px;font-size:.68rem;font-weight:700;margin-top:6px;}
+  .inc-add{width:100%;background:#ffffff;border:1.5px dashed var(--navy);color:var(--navy);border-radius:8px;
+           padding:9px;font-size:.76rem;font-weight:700;cursor:pointer;}
+  .inc-empty{font-size:.72rem;color:#444444;}
+  .germ-pairs{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+
+  .event-scroll-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+  .event-card-slot{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box;padding-right:6px;}
+
+  .submitted-tag{font-size:.7rem;color:var(--navy);font-weight:400;margin-left:6px;}
+  .event-submit-row{margin-top:10px;display:flex;justify-content:flex-end;}
+  .btn-event-submit{background:#7fc79a;color:#ffffff;border:none;border-radius:6px;padding:4px 8px;font-size:.68rem;font-weight:700;cursor:pointer;}
+  .btn-event-edit{background:var(--danger);border:none;color:#ffffff;border-radius:6px;padding:4px 8px;font-size:.68rem;font-weight:700;cursor:pointer;}
+  .event-field select[disabled], .event-field input[disabled], .event-field textarea[disabled]{background:#e5e5e5;color:#3c3c3c;opacity:1;}
+
+  table.daily-table input[data-shift="ดึก"], table.daily-table select[data-shift="ดึก"]{color:var(--shift-night);font-weight:600;}
+  table.daily-table input[data-shift="เช้า"], table.daily-table select[data-shift="เช้า"]{color:var(--shift-morn);font-weight:600;}
+  table.daily-table input[data-shift="บ่าย"], table.daily-table select[data-shift="บ่าย"]{color:var(--shift-aft);font-weight:600;}
+
+  table.daily-table tr.care-group-misc td{background:#ffffff;}
+  table.daily-table tr.care-group-sedative td{background:#d5e3f9;}
+  table.daily-table tr.care-group-sedative td.label{background:#b7d1f5;}
+  table.daily-table tr.care-group-cvp td{background:#fbe7c7;}
+  table.daily-table tr.care-group-cvp td.label{background:#f5cf91;}
+  table.daily-table tr.care-group-vent td{background:#d1edd9;}
+  table.daily-table tr.care-group-vent td.label{background:#afe1bb;}
+  table.daily-table tr.care-group-vap td{background:#e9d3f7;}
+  table.daily-table tr.care-group-vap td.label{background:#d3afef;}
+  table.daily-table tr.care-group-tpiece td{background:#fbd3d9;}
+  table.daily-table tr.care-group-tpiece td.label{background:#f7afbb;}
+
+/* ===== จอกว้าง (คอม/แท็บเล็ต/คอมที่ซูมเบราว์เซอร์): แสดง 3 เวรเรียงข้างกันพอดีจอ ไม่ต้องเลื่อนซ้ายขวา =====
+   มือถือ (แคบกว่า 760px) ยังใช้แบบปัดทีละเวรเหมือนเดิม */
+@media (min-width:760px){
+  main{max-width:700px;margin-left:auto;margin-right:auto;padding-left:16px;padding-right:16px;}   /* แคบลงครึ่งหนึ่งจากเต็มจอ แต่ยังเห็นครบ 3 เวร */
+  #proc,#export{max-width:760px;margin-left:auto;margin-right:auto;}   /* หน้ารายการยาวๆ คงความกว้างอ่านง่าย */
+  .view-btn{max-width:360px;}
+  .scroll-wrap{overflow-x:visible;}
+  table.daily-table{min-width:0 !important;}
+  table.daily-table col:first-child{width:150px !important;}           /* ป้ายชื่อรายการกว้างขึ้น ไม่ต้องตัดบรรทัด */
+  table.daily-table col:not(:first-child){width:auto !important;}      /* คอลัมน์เวรแบ่งความกว้างเท่ากัน */
+  .p4pd-submit-spacer{flex-basis:150px;}                               /* ให้ปุ่ม Submit ตรงใต้คอลัมน์เวร */
+  .event-scroll-row{overflow-x:visible;scroll-snap-type:none;}
+  .event-card-slot{flex:1 1 0;min-width:0;scroll-snap-align:none;}
+}
+
+  /* ป้ายสถานะ: เม็ดยาเล็กๆ ลอยมุมขวาบน ตัวหนังสือแบบหน้าลงทะเบียน (พื้นน้ำเงินเข้มให้อ่านได้ทั้งบนแถบหัวและพื้นขาว) */
+  #sync-status{position:fixed;top:calc(8px + env(safe-area-inset-top, 0px));right:10px;z-index:80;max-width:72%;margin:0;
+    padding:3px 10px;border:0;border-radius:999px;background:rgba(16,32,72,.86);box-shadow:0 1px 4px rgba(0,0,0,.18);
+    font-size:10px;font-weight:700;line-height:1.5;text-align:right;text-shadow:none;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+  #sync-status.bad{pointer-events:auto;cursor:pointer;}
+  body{padding-bottom:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="index.html">‹ กลับเมนูหลัก</a>
+  <h1>บันทึกเหตุการณ์รายวัน</h1>
+</header>
+
+<div class="syncbar">
+  <span id="sync-status">กำลังเชื่อมส่วนกลาง...</span>
+</div>
+
+<div class="toprow">
+  <div>
+    <label>วันที่</label>
+    <input type="date" id="rec-date">
+  </div>
+</div>
+
+<nav class="tabs">
+  <button data-tab="daily" class="active">📋 บันทึกประจำวัน</button>
+  <button data-tab="proc">🔧 หัตถการ</button>
+  <button data-tab="p4pd">📊 p4p รายวัน</button>
+  <button data-tab="export">📤 Export</button>
+</nav>
+
+<div class="local-shift-picker" id="local-shift-picker">
+  <span>กำลังกรอกเวร:</span>
+  <button class="shift-btn" data-shift="ดึก">ดึก</button>
+  <button class="shift-btn" data-shift="เช้า">เช้า</button>
+  <button class="shift-btn" data-shift="บ่าย">บ่าย</button>
+</div>
+
+<main>
+
+<!-- DAILY (unified 3-shift page, matches the real report layout) -->
+<section class="panel active" id="daily">
+  <button class="view-btn" id="btn-view-daily">📄 รายงานบันทึกประจำวัน</button>
+  <div id="daily-table-wrap"></div>
+</section>
+
+<!-- PROCEDURES -->
+<section class="panel" id="proc">
+  <div id="proc-list"></div>
+</section>
+
+<!-- DIAGNOSIS -->
+<!-- P4P DAILY -->
+<section class="panel" id="p4pd">
+  <div class="daily-section-title">ภาระงานบริการ</div>
+  <div id="p4pd-list"></div>
+  <div class="daily-section-title">Diagnosis</div>
+  <div id="diag-list"></div>
+  <div class="p4pd-submit-row" id="p4pd-submit-row"></div>
+</section>
+
+<!-- EXPORT -->
+<section class="panel" id="export">
+
+  <div class="month-range-box">
+    <div class="mr-title">ช่วงข้อมูลที่จะ Export</div>
+    <div class="exp-mode-row">
+      <button type="button" class="exp-mode-btn active" data-mode="day">รายวัน</button>
+      <button type="button" class="exp-mode-btn" data-mode="month">รายเดือน</button>
+    </div>
+    <div class="mr-row" id="exp-day-row">
+      <label>วันที่</label><input type="date" id="exp-date">
+    </div>
+    <div class="mr-row" id="exp-month-row" style="display:none;">
+      <label>ตั้งแต่</label><input type="month" id="mr-from">
+      <label>ถึง</label><input type="month" id="mr-to">
+    </div>
+  </div>
+
+  <button class="export-btn" id="btn-export-hattakan">
+    <span class="icon">🔧</span>
+    <span>หัตถการ<small>1 ชีทต่อเดือน + ชีทสรุปรวม (โหมดรายวัน = เฉพาะวันนั้น)</small></span>
+  </button>
+  <button class="export-btn" id="btn-export-p4pdaily">
+    <span class="icon">🩺</span>
+    <span>p4p รายวัน<small>ภาระงาน + Diagnosis แยก 3 เวร</small></span>
+  </button>
+  <button class="export-btn" id="btn-export-pdf" style="border-color:var(--ok);color:var(--ok);">
+    <span class="icon">📄</span>
+    <span>แบบบันทึกเหตุการณ์_RCU (PDF)<small>1 แผ่น = 1 วันที่ แสดงครบ 3 เวร</small></span>
+  </button>
+
+  <div class="month-range-box">
+    <div class="mr-title">⚠️ รายงานความเสี่ยง RM (ทั้งปีงบ)</div>
+    <div class="mr-row">
+      <label>ปีงบ</label><select id="rm-year"></select>
+    </div>
+    <button class="export-btn" id="btn-export-rm" style="border-color:var(--danger);color:var(--danger);margin-top:8px;">
+      <span class="icon">⚠️</span>
+      <span>Export RM</span>
+    </button>
+  </div>
+
+  <div class="month-range-box">
+    <div class="mr-title">🦠 รายงานเชื้อดื้อยา IC</div>
+    <div class="exp-mode-row">
+      <button type="button" class="ic-mode-btn active" data-icmode="month">รายเดือน</button>
+      <button type="button" class="ic-mode-btn" data-icmode="year">รายปีงบ</button>
+    </div>
+    <div class="mr-row" id="ic-month-row">
+      <label>เดือน</label><input type="month" id="ic-month">
+    </div>
+    <div class="mr-row" id="ic-year-row" style="display:none;">
+      <label>ปีงบ</label><select id="ic-year"></select>
+    </div>
+    <button class="export-btn" id="btn-export-ic" style="border-color:#0f7d84;color:#0f7d84;margin-top:8px;">
+      <span class="icon">🦠</span>
+      <span>Export IC</span>
+    </button>
+  </div>
+</section>
+
+</main>
+
+<div class="popup-overlay" id="popup-overlay" style="display:none;">
+  <div class="popup-box">
+    <p id="popup-message"></p>
+    <button type="button" class="popup-ok-btn" id="popup-ok">ตกลง</button>
+  </div>
+</div>
+
+<div class="prev-overlay" id="prev-overlay" style="display:none;">
+  <div class="prev-box">
+    <div class="prev-head">
+      <span id="prev-title">ตัวอย่างก่อนพิมพ์</span>
+      <button type="button" id="prev-zoom" class="prev-zoom">🔍 ขยาย</button>
+      <button type="button" id="prev-close">✕</button>
+    </div>
+    <div class="prev-body" id="prev-body"></div>
+    <div class="prev-foot">
+      <button type="button" id="prev-download">📥 ดาวน์โหลด PDF</button>
+    </div>
+  </div>
+</div>
+
+<div id="pdf-report-container" style="display:none;"></div>
+
+
+<script>
+/* ---------------- data model ---------------- */
+const SHIFTS = ["ดึก","เช้า","บ่าย"];
+const THAI_MONTHS = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const THAI_MONTHS_FULL = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+let currentShift = "ดึก";
+const INCHARGE_ROSTER = ["ผ่องนภา สงวนสิน","รวิวรรณ ปรียานุภาพ","พนิดา นิติสารวงศ์","กรรณิกา งามลา","มงคล เถื่อนศรี","วรัญญา ศรีทรัพย์พานิช","ลลิดา รู้ด่านกลาง","กันยารัตน์ สินปรุ","เยาวลักษณ์ วายุระกุล","ศรีสุดา มิตรสูงเนิน","อติพร ธรรมดี","นันทวี แสนใจงาม","จิราภรณ์ สุดมี","สุภรัตน์ เฉิดจังหรีด","สุลักษณา อรรถพันธ์กุล","ระพีภัทร ตาเมือง","กมลพรรณ ดุมใหม่"];
+function emptyShift(){ return {}; }
+// วันที่ตามเวลาเครื่อง (ไทย) — toISOString() เป็นเวลาสากล ทำให้ช่วง 00:00–07:00 ได้วันที่ของเมื่อวาน
+function localISO(d){ d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function emptyDay(){ return { shifts: { "ดึก": emptyShift(), "เช้า": emptyShift(), "บ่าย": emptyShift() },
+  procState: { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" },
+  eventState: { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" } }; }
+
+const STORE_KEY = "rcu_daily_records_v1";
+let allDays = {};          // allDays["2026-09-01"] = emptyDay()
+// สถานะการส่งขึ้นส่วนกลาง (ต้องประกาศก่อน switchToDate ถูกเรียกตอนเปิดหน้า)
+let baseSnap = {};                                    // หน้าตาของแต่ละวันตอนตรงกับส่วนกลางล่าสุด (ใช้รวมข้อมูลสามทาง)
+const PENDING_KEY = "rcu_daily_pending_v1", IC_PENDING_KEY = "rcu_ic_pending_v1";
+let currentDateKey = "";   // which date is loaded into `data`
+let data = emptyDay();     // the day currently being edited
+
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    allDays = raw ? JSON.parse(raw) : {};
+  }catch(e){ allDays = {}; }
+}
+function saveStore(){
+  try{
+    if(currentDateKey) allDays[currentDateKey] = data;
+    localStorage.setItem(STORE_KEY, JSON.stringify(allDays));
+  }catch(e){ console.error("บันทึกไม่สำเร็จ", e); }
+}
+// switch the editor to a given date, saving whatever was open before
+function switchToDate(dateKey){
+  if(currentDateKey && currentDateKey !== dateKey) saveStore();
+  currentDateKey = dateKey;
+  if(!allDays[dateKey]) allDays[dateKey] = emptyDay();
+  data = allDays[dateKey];
+  // keep the per-tab lock states in sync with this day's saved state
+  procEditState = data.procState || (data.procState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" });
+  shiftEditState = data.eventState || (data.eventState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" });
+  p4pdEditState = data.p4pdState || (data.p4pdState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" });
+  if(!pendingAll()[dateKey]) baseSnap[dateKey] = JSON.stringify(data);
+}
+
+function getShiftData(){ return data.shifts[currentShift]; }
+function setDeep(obj, path, val){
+  const parts = path.split(".");
+  let o = obj;
+  for(let i=0;i<parts.length-1;i++){ o[parts[i]] = o[parts[i]] || {}; o = o[parts[i]]; }
+  o[parts[parts.length-1]] = val;
+}
+function getDeep(obj, path){
+  const parts = path.split(".");
+  let o = obj;
+  for(const p of parts){ if(o==null) return undefined; o = o[p]; }
+  return o;
+}
+
+function showPopup(message){
+  document.getElementById("popup-message").textContent = message;
+  document.getElementById("popup-overlay").style.display = "flex";
+}
+document.getElementById("popup-ok").addEventListener("click", ()=>{
+  document.getElementById("popup-overlay").style.display = "none";
+});
+
+/* ---------------- procedure list (matches หัตถการปีงบ rows 3-71) ---------------- */
+const PROC_GROUPS = [
+ { title:"การพยาบาลผู้ป่วยที่ใช้เครื่องช่วยหายใจและเครื่องมือพิเศษ", items:[
+   ["p1","การพยาบาลผู้ป่วย On Volume respirator","ราย"],
+   ["p2","การพยาบาลผู้ป่วยใช้ O2 T-piece","ราย"],
+   ["p3","การพยาบาลผู้ป่วยใช้ O2 cannula, O2 mask","ราย"],
+   ["p4","การใช้เครื่องช่วยหายใจชนิด HFNC / C-PAP / Bipap","ราย"],
+   ["p5","การพยาบาลผู้ป่วยใช้ Infusion pump","เครื่อง"],
+   ["p6","การพยาบาลผู้ป่วย Monitor EKG","ราย"],
+   ["p7","การพยาบาลผู้ป่วย Oxygen saturation","ราย"],
+   ["p8","การพยาบาลผู้ป่วยหลังทำ skin traction","ราย"],
+ ]},
+ { title:"การช่วยแพทย์ทำหัตถการ", items:[
+   ["p9","การเจาะหลัง (lumbar puncture)","ครั้ง"],
+   ["p10","การเจาะท้อง (Abdominal paracentesis)","ครั้ง"],
+   ["p11","การใส่ท่อระบายทรวงอก (on ICD)","ครั้ง"],
+   ["p12","การเปิดหลอดเลือดดำ (C-line)","ครั้ง"],
+   ["p13","การเปิดหลอดเลือดแดง (A-line)","ครั้ง"],
+   ["p14","การช่วยฟื้นคืนชีพ (CPR)","ครั้ง"],
+   ["p15","การทำ Double lumen","ครั้ง"],
+   ["p16","การทำ Peritoneal dialysis","ครั้ง"],
+   ["p17","การช่วยแพทย์ใส่ ET-tube","ครั้ง"],
+   ["p18","การเจาะน้ำออกจากข้อ (Arthrocentesis)","ครั้ง"],
+   ["p19","การเจาะไขกระดูก (BM aspiration)","ครั้ง"],
+   ["p20","การตัดชิ้นเนื้อ (BX)","ครั้ง"],
+   ["p21","การเจาะระบายน้ำเยื่อหุ้มปอด (Pleural Tapping)","ครั้ง"],
+   ["p22","การ ECHO at ward","ครั้ง"],
+ ]},
+ { title:"การเตรียมผู้ป่วยเพื่อการตรวจพิเศษ", items:[
+   ["p23","การเตรียม Portable Chest X-Ray","ราย"],
+   ["p24","การเตรียม CT Scan","ราย"],
+   ["p25","การเตรียมผู้ป่วยตรวจ Ultrasound","ราย"],
+   ["p26","การเตรียมผู้ป่วยตรวจ Echocardiogram","ราย"],
+   ["p27","การเตรียมผู้ป่วยตรวจ Bronchoscope","ราย"],
+   ["p28","การเตรียมผู้ป่วยตรวจ EEG","ราย"],
+   ["p29","การเตรียมผู้ป่วยตรวจ MRI","ราย"],
+   ["p30","การเตรียมตรวจ EKG 12 lead","ราย"],
+ ]},
+ { title:"กิจกรรมการให้การพยาบาล", items:[
+   ["p31","ให้สารน้ำทางหลอดเลือดดำ (IV)","ครั้ง"],
+   ["p32","การฉีดยาทางหลอดเลือดดำ (IV)","ครั้ง"],
+   ["p33","การฉีดยาทางผิวหนัง (SC)","ครั้ง"],
+   ["p34","การฉีดยาทางกล้ามเนื้อ (IM)","ครั้ง"],
+   ["p35","DTX","ครั้ง"],
+   ["p36","HCT","ครั้ง"],
+   ["p37","การเจาะเลือดส่งตรวจ","ครั้ง"],
+   ["p38","จัดและแจกยา","ครั้ง"],
+   ["p39","ให้อาหารทางสายยาง","ครั้ง"],
+   ["p40","การใส่ NG tube","ครั้ง"],
+   ["p41","การสวนล้างกระเพาะอาหาร","ครั้ง"],
+   ["p42","การใส่สายสวนปัสสาวะ (คาสาย) ใส่ใหม่","ครั้ง"],
+   ["p43","การสวนปัสสาวะทิ้ง","ครั้ง"],
+   ["p44","wet dressing","ครั้ง"],
+   ["p45","dry dressing","ครั้ง"],
+   ["p46","การแผลเย็บ/ตัดไหม (1 Set)","ครั้ง"],
+   ["p47","การดูแลผู้ป่วยล้างไต (CAPD/APD)","ราย"],
+   ["p48","การทำ CRRT (CVVH,CVVHD,CVVHDF)","ราย"],
+   ["p49","การดูแลผู้ป่วยล้างไต (HD)","ราย"],
+   ["p50","การเปลี่ยนถ่ายเลือด (Plasma Exchange)","ราย"],
+   ["p51","PRC, LPRC, LDPRC","ครั้ง"],
+   ["p52","PC, SDP, LPPC","ครั้ง"],
+   ["p53","FFP, CRYO","ครั้ง"],
+   ["p54","การพ่นยา (Nebulizer, MDI)","ครั้ง"],
+   ["p55","การดูแลผู้ป่วย on ICD","ราย"],
+   ["p56","Complete bed bath","ครั้ง"],
+   ["p57","Suction Clear Air Way","ครั้ง"],
+   ["p58","การวัดสัญญาณชีพ","ราย"],
+   ["p59","การพลิกตะแคงตัว","ครั้ง"],
+   ["p60","เตียงและที่นอน Alpha Bed","ราย"],
+   ["p61","การวัด cuff pressure","ครั้ง"],
+   ["p62","การให้ยา Sedative Drug","ราย"],
+   ["p63","การให้ยา HAD","ราย"],
+   ["p64","การ Wean off Tube","ราย"],
+ ]},
+];
+// flat list with the real row number in "หัตถการปีงบ" template (rows 4-71, skipping header rows 3,12,27,36,57)
+const PROC_ROW_MAP = (()=>{
+  const rows=[4,5,6,7,8,9,10,11, 13,14,15,16,17,18,19,20,21,22,23,24,25,26, 28,29,30,31,32,33,34,35, 37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,58,59,60,61,62,63,64,65,66,67,68,69,70,71];
+  const flat = PROC_GROUPS.flatMap(g=>g.items);
+  const map = {};
+  flat.forEach((item,i)=> map[item[0]] = rows[i]);
+  return map;
+})();
+
+/* ---------------- diagnosis list (matches p4pรายวัน) ---------------- */
+const DIAG_LIST = [
+  "Pneumonia","Post Arrest","Asthma","COPD","DKA HHS MALA","DF,DHF,DSS","ARDS","CHF",
+  "STEMI / NSTEMI","ESRD,CKD,AKI",
+  "Sepsis /Septic Shock","— unplan CPR","— Dead",
+  "Stroke","— ได้ rtPA","—— Hemorhage","—— No Hemorhage","— ไม่ได้ rtPA","— Dead"
+];
+
+/* ---------------- render dynamic panels ---------------- */
+let procEditState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" };
+
+function renderProcList(){
+  const el = document.getElementById("proc-list");
+  const sh = currentShift;
+  const submitted = procEditState[sh] === "submitted";
+  const dis = submitted ? "disabled" : "";
+  const prevShift = SHIFTS[SHIFTS.indexOf(sh) - 1];
+
+  let html = `<div class="proc-toolbar">
+    <span class="proc-shift-tag shift-${sh}">เวร${sh}${submitted ? " — ยืนยันแล้ว" : ""}</span>
+    <div class="proc-toolbar-btns">
+      ${(!submitted && prevShift) ? `<button type="button" class="btn-proc-copy" id="btn-proc-copy">คัดลอกจากเวร${prevShift}</button>` : ""}
+      ${submitted
+        ? `<button type="button" class="btn-event-edit" id="btn-proc-edit">Edit</button>`
+        : `<button type="button" class="btn-event-submit" id="btn-proc-submit">Submit</button>`}
+    </div>
+  </div>`;
+
+  PROC_GROUPS.forEach(g=>{
+    html += `<div class="proc-group"><h4>${g.title}</h4>`;
+    g.items.forEach(([key,label,unit])=>{
+      const v = getDeep(data.shifts[sh], `proc.${key}`);
+      html += `<div class="proc-row">
+        <span class="lbl">${label}</span><span class="unit">${unit}</span>
+        <input type="number" min="0" ${dis} data-shift="${sh}" data-pf="proc.${key}" value="${v!==undefined&&v!==null?v:""}">
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+
+// proc inputs write straight into the selected shift's data
+document.getElementById("proc-list").addEventListener("input", (e)=>{
+  const t = e.target;
+  if(!t.dataset.pf) return;
+  setDeep(data.shifts[t.dataset.shift], t.dataset.pf, t.value);
+});
+
+document.getElementById("proc-list").addEventListener("click", (e)=>{
+  if(e.target.closest("#btn-proc-submit")){
+    procEditState[currentShift] = "submitted";
+    saveStore();
+    renderProcList();
+  } else if(e.target.closest("#btn-proc-edit")){
+    procEditState[currentShift] = "editing";
+    saveStore();
+    renderProcList();
+  } else if(e.target.closest("#btn-proc-copy")){
+    const prevShift = SHIFTS[SHIFTS.indexOf(currentShift) - 1];
+    if(!prevShift) return;
+    const prevData = getDeep(data.shifts[prevShift], "proc") || {};
+    let copied = 0;
+    Object.entries(prevData).forEach(([key,val])=>{
+      if(val !== undefined && val !== null && String(val).trim() !== ""){
+        setDeep(data.shifts[currentShift], `proc.${key}`, val);
+        copied++;
+      }
+    });
+    saveStore();   // programmatic change: no input event fires, so persist explicitly
+    renderProcList();
+    showPopup(copied > 0
+      ? `คัดลอกจากเวร${prevShift} แล้ว ${copied} รายการ — แก้ไขได้ก่อนกด Submit`
+      : `เวร${prevShift} ยังไม่มีข้อมูลหัตถการให้คัดลอก`);
+  }
+});
+/* ---------------- p4p รายวัน: full service list; "link" rows mirror the daily record ---------------- */
+// mode: "edit" = own field, "link:<path>" = read-only mirror of the daily table, "rntn" = computed
+const P4PD_ROWS = [
+  ["จำนวนผู้ป่วยหนักโรคหัวใจ (เฉลี่ย/วัน)","p4pd.heart","edit"],
+  ["ICU need (คน : ค่าเฉลี่ย/วัน)","p4pd.icuNeed","edit"],
+  ["RN+TN ที่ขึ้นเวรทั้งหมดรวม OT/วัน","p4pd.rnTn","rntn"],
+  ["ยอดยกมา","census.carry","link"],
+  ["รับใหม่","census.newAdmit","link"],
+  ["รับย้าย","census.transferIn","link"],
+  ["ย้าย","census.transferOut","link"],
+  ["จำหน่าย","census.discharge","link"],
+  ["ไม่สมัครใจอยู่ (ย่อยของจำหน่าย)","p4pd.notVoluntary","edit"],
+  ["Refer","census.refer","link"],
+  ["ถึงแก่กรรม","census.dead","link"],
+  ["คงพยาบาล","census.remain","link"],
+  ["จำนวนวันนอน","p4pd.bedDays","edit"],
+];
+// RN+TN incl. OT = RN(ปกติ+OT) + NA(ปกติ+OT) already entered in the daily table
+function computeRnTn(sh){
+  const n = p=>{ const v=parseFloat(getDeep(data.shifts[sh],p)); return isNaN(v)?0:v; };
+  return n("staff.RN.normal")+n("staff.RN.ot")+n("staff.NA.normal")+n("staff.NA.ot");
+}
+function renderP4pdList(){
+  const el = document.getElementById("p4pd-list");
+  let html = `<div class="scroll-wrap"><table class="daily-table p4pd-table"><colgroup>
+    <col style="width:104px">
+    <col><col><col>
+  </colgroup><tr>
+    <th class="sticky-col">ข้อมูล</th><th class="hd-ดึก">ดึก</th><th class="hd-เช้า">เช้า</th><th class="hd-บ่าย">บ่าย</th>
+  </tr>`;
+  P4PD_ROWS.forEach(([label,path,mode])=>{
+    const linked = (mode === "link" || mode === "rntn");
+    html += `<tr${linked?' class="p4pd-linked"':''}><td class="label">${label}</td>`;
+    SHIFTS.forEach(sh=>{
+      const locked = p4pdEditState[sh] === "submitted";
+      if(mode === "rntn"){
+        html += `<td><input type="text" readonly value="${computeRnTn(sh)}"></td>`;
+      } else if(mode === "link"){
+        const v = getDeep(data.shifts[sh], path);
+        html += `<td><input type="text" readonly value="${v!==undefined&&v!==null?v:""}"></td>`;
+      } else {
+        const v = getDeep(data.shifts[sh], path);
+        html += `<td><input type="text" inputmode="decimal" ${locked?"disabled":""} data-shift="${sh}" data-pd="${path}" value="${v!==undefined&&v!==null?v:""}"></td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+  html += `</table></div>
+    <div class="p4pd-hint">ช่องพื้นเทา = ดึงจากแท็บ "บันทึกประจำวัน" อัตโนมัติ แก้ที่แท็บนั้น</div>`;
+  el.innerHTML = html;
+
+  renderDiagList();
+  renderP4pdSubmitRow();
+}
+
+// Diagnosis: same 3-shift layout as the service table
+function renderDiagList(){
+  const el = document.getElementById("diag-list");
+  let html = `<div class="scroll-wrap"><table class="daily-table p4pd-table"><colgroup>
+    <col style="width:104px">
+    <col><col><col>
+  </colgroup><tr>
+    <th class="sticky-col">Diagnosis</th><th class="hd-ดึก">ดึก</th><th class="hd-เช้า">เช้า</th><th class="hd-บ่าย">บ่าย</th>
+  </tr>`;
+  DIAG_LIST.forEach((d,i)=>{
+    const depth = d.startsWith("——") ? 2 : (d.startsWith("—") ? 1 : 0);
+    const clean = d.replace(/^—+\s*/,"");
+    const pad = depth * 12;
+    html += `<tr><td class="label" style="padding-left:${6+pad}px;${depth?'color:#666;':''}">${clean}</td>`;
+    SHIFTS.forEach(sh=>{
+      const locked = p4pdEditState[sh] === "submitted";
+      const v = getDeep(data.shifts[sh], `diag.d${i}`);
+      html += `<td><input type="number" min="0" ${locked?"disabled":""} data-shift="${sh}" data-pd="diag.d${i}" value="${v!==undefined&&v!==null?v:""}"></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table></div>`;
+  el.innerHTML = html;
+}
+
+// one Submit/Edit control per shift, sitting under the tables
+let p4pdEditState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" };
+function renderP4pdSubmitRow(){
+  const el = document.getElementById("p4pd-submit-row");
+  if(!el) return;
+  el.innerHTML = `<div class="p4pd-submit-spacer"></div>` + SHIFTS.map(sh=>{
+    const submitted = p4pdEditState[sh] === "submitted";
+    return `<div class="p4pd-submit-cell">
+      <span class="p4pd-submit-label shift-${sh}">${sh}</span>
+      ${submitted
+        ? `<button type="button" class="btn-event-edit" data-p4pd-edit="${sh}">Edit</button>`
+        : `<button type="button" class="btn-event-submit" data-p4pd-submit="${sh}">Submit</button>`}
+    </div>`;
+  }).join("");
+}
+document.getElementById("p4pd-submit-row").addEventListener("click", (e)=>{
+  const s = e.target.closest("[data-p4pd-submit]");
+  const ed = e.target.closest("[data-p4pd-edit]");
+  if(s){
+    // no required fields here — submit is allowed even with blanks
+    p4pdEditState[s.dataset.p4pdSubmit] = "submitted";
+  }
+  else if(ed){ p4pdEditState[ed.dataset.p4pdEdit] = "editing"; }
+  else return;
+  data.p4pdState = p4pdEditState;
+  saveStore();
+  renderP4pdList();
+});
+// the service table and the Diagnosis table are separate containers; both feed the same store
+["p4pd-list","diag-list"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", (e)=>{
+    const t = e.target;
+    if(!t.dataset.pd) return;
+    setDeep(data.shifts[t.dataset.shift], t.dataset.pd, t.value);
+  });
+});
+
+/* ---------------- unified daily table: all 3 shifts on one page ---------------- */
+const STAFF_ROLES = [["RN","RN"],["NA","NA"],["W","W (คนงาน)"]];
+const CENSUS_ROWS = [
+  ["ยอดยกมา","census.carry"], ["รับใหม่","census.newAdmit"], ["รับย้าย","census.transferIn"],
+  ["จำหน่าย","census.discharge"], ["ย้าย/ส่งต่อ","census.transferOut"], ["ถึงแก่กรรม","census.dead"],
+  ["Refer","census.refer"],
+  ["เตรียมผ่าตัด/<br>เตรียมตรวจ","census.prep"], ["ผ่าตัด","census.surgery"], ["คงพยาบาล","census.remain"],
+  ["ผป.ประเภท 5","ptype.p5"], ["ผป.ประเภท 4","ptype.p4"], ["ผป.ประเภท 3","ptype.p3"], ["ผป.ประเภท 2","ptype.p2"],
+  ["Productivity","productivity"],
+];
+const CARE_ROWS = [
+  ["แผลกดทับ<br>ระดับ 2-4 รายใหม่","pressureUlcer","misc"],
+  ["Sedative","sedative.Sedative","sedative"],
+  ["HAD","sedative.HAD","sedative"],
+  ["Thrombolytic","sedative.Thrombolytic","sedative"],
+  ["TPN","sedative.TPN","sedative"],
+  ["C-LINE","cvp.CVP","cvp"],
+  ["A-LINE","cvp.ALINE","cvp"],
+  ["IABP","cvp.IABP","cvp"],
+  ["End Tidal CO2","cvp.CO","cvp"],
+  ["Ventilator","vent.Ventilator","vent"],
+  ["HFNC","vent.HFNC","vent"],
+  ["Canula","vent.Canula","vent"],
+  ["Mask with bag","vent.Mask","vent"],
+  ["VAP","vapCauti.VAP","vap"],
+  ["CAUTI","vapCauti.CAUTI","vap"],
+  ["T-piece","tpiece.Tpiece","tpiece"],
+  ["Off ETT","tpiece.OffETT","tpiece"],
+];
+// combine a group's individual sub-fields back into one "Label value, Label2 value2" string (used for export, matching the original form's single-cell format)
+function combineCareGroup(sd, groupKey, pairs){
+  return pairs.map(([label,key])=>{
+    const v = getDeep(sd, `${groupKey}.${key}`);
+    return (v!==undefined && v!==null && String(v).trim()!=="") ? `${label} ${v}` : null;
+  }).filter(Boolean).join(", ");
+}
+const EVENT_TIME_LABEL = { "ดึก":"24.00-8.00 น.", "เช้า":"8.00-16.00 น.", "บ่าย":"16.00-24.00 น." };
+
+function renderDailyTable(){
+  const wrap = document.getElementById("daily-table-wrap");
+  let html = "";
+
+  // --- merged table: บุคลากร + สถิติผู้ป่วย together, one shared header ---
+  html += `<div class="daily-section-title">บุคลากร &amp; สถิติผู้ป่วย</div><div class="scroll-wrap" id="scroll-staff"><table class="daily-table staff-table"><colgroup>
+    <col style="width:100px">
+    <col style="width:calc((100vw - 136px)/2)"><col style="width:calc((100vw - 136px)/2)">
+    <col style="width:calc((100vw - 136px)/2)"><col style="width:calc((100vw - 136px)/2)">
+    <col style="width:calc((100vw - 136px)/2)"><col style="width:calc((100vw - 136px)/2)">
+  </colgroup><tr>
+    <th rowspan="2" class="sticky-col">ข้อมูล</th>
+    <th colspan="2" class="hd-ดึก" id="col-staff-ดึก">ดึก</th><th colspan="2" class="hd-เช้า" id="col-staff-เช้า">เช้า</th><th colspan="2" class="hd-บ่าย" id="col-staff-บ่าย">บ่าย</th>
+  </tr><tr>
+    <th class="hd-ดึก">ปกติ</th><th class="hd-ดึก">OT</th>
+    <th class="hd-เช้า">ปกติ</th><th class="hd-เช้า">OT</th>
+    <th class="hd-บ่าย">ปกติ</th><th class="hd-บ่าย">OT</th>
+  </tr>`;
+  STAFF_ROLES.forEach(([code,label])=>{
+    html += `<tr><td class="label">${label}</td>`;
+    SHIFTS.forEach(sh=>{
+      html += `<td><input type="number" min="0" data-shift="${sh}" data-f="staff.${code}.normal" value="${getDeep(data.shifts[sh],`staff.${code}.normal`)||""}"></td>`;
+      html += `<td><input type="number" min="0" data-shift="${sh}" data-f="staff.${code}.ot" value="${getDeep(data.shifts[sh],`staff.${code}.ot`)||""}"></td>`;
+    });
+    html += `</tr>`;
+  });
+  CENSUS_ROWS.forEach(([label,path])=>{
+    html += `<tr><td class="label">${label}</td>`;
+    SHIFTS.forEach(sh=>{
+      const v = path==="census.remain" ? computeRemain(sh) : getDeep(data.shifts[sh], path);
+      const ro = path==="census.remain" ? "readonly" : "";
+      html += `<td colspan="2"><input type="text" inputmode="decimal" ${ro} data-shift="${sh}" data-f="${path}" value="${v!==undefined&&v!==null?v:""}"></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table></div>`;
+
+  // --- care indicators table (each item its own row now) ---
+  html += `<div class="daily-section-title">การพยาบาลพิเศษ</div><div class="scroll-wrap" id="scroll-care"><table class="daily-table staff-table"><colgroup>
+    <col style="width:100px">
+    <col style="width:calc(100vw - 136px)"><col style="width:calc(100vw - 136px)"><col style="width:calc(100vw - 136px)">
+  </colgroup><tr>
+    <th class="sticky-col">ข้อมูล</th><th class="hd-ดึก" id="col-care-ดึก">ดึก</th><th class="hd-เช้า" id="col-care-เช้า">เช้า</th><th class="hd-บ่าย" id="col-care-บ่าย">บ่าย</th>
+  </tr>`;
+  CARE_ROWS.forEach(([label,path,group])=>{
+    html += `<tr class="care-group-${group}"><td class="label">${label}</td>`;
+    SHIFTS.forEach(sh=>{
+      const v = getDeep(data.shifts[sh], path);
+      html += `<td><input type="text" data-shift="${sh}" data-f="${path}" value="${v!==undefined&&v!==null?v:""}"></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table></div>`;
+
+  // --- events: all 3 shifts always rendered, horizontally scrollable ---
+  html += `<div class="daily-section-title">สรุปเหตุการณ์ & ความเสี่ยง</div>
+    <div class="event-scroll-row" id="event-scroll-row"></div>`;
+
+  wrap.innerHTML = html;
+  renderEventsRow();
+  attachDailyScrollSync();
+}
+
+// keep บุคลากร&สถิติผู้ป่วย, การพยาบาลพิเศษ and the event cards scrolled to the same shift
+function attachDailyScrollSync(){
+  const staff = document.getElementById("scroll-staff");
+  const care  = document.getElementById("scroll-care");
+  const events = document.getElementById("event-scroll-row");
+  const parts = [staff, care, events].filter(Boolean);
+  let syncing = false;
+  parts.forEach(src=>{
+    src.addEventListener("scroll", ()=>{
+      if(syncing) return;
+      syncing = true;
+      // translate position into a 0..1 ratio so differing widths still line up
+      const ratio = src.scrollWidth > src.clientWidth
+        ? src.scrollLeft / (src.scrollWidth - src.clientWidth) : 0;
+      parts.forEach(other=>{
+        if(other === src) return;
+        const max = other.scrollWidth - other.clientWidth;
+        if(max > 0) other.scrollLeft = ratio * max;
+      });
+      requestAnimationFrame(()=>{ syncing = false; });
+    });
+  });
+}
+
+const STAFF_STATUS_OPTIONS = ["เจ้าหน้าที่ขึ้นปฏิบัติงานครบ","เจ้าหน้าที่ลาป่วย(ราย)","เจ้าหน้าที่ลากิจ(ราย)","เจ้าหน้าที่ปฏิบัติไปราชการ(ราย)"];
+const RM_GROUPS = [
+  {g:"การให้เลือดปลอดภัย",s:"AI",i:["1.1  เตรียมผิดคน", "1.2  เจาะเลือดผิดคน", "1.3 ให้เลือดผิดคน", "1.4  ผิดชนิด", "1.5  ผิดขนาด", "1.6 อื่นๆ"]},
+  {g:"การผ่าตัดปลอดภัย",s:"AI",i:["2.1 มีสิ่งตกค้างภายในร่างกายผู้ป่วย", "2.2 set ผ่าตัด ผิดคน ผิดข้าง", "2.3 งดเลื่อนผ่าตัดจากพยาบาล", "2.4 เตรียมผ่าตัดไม่พร้อม", ".-  ไม่ได้ เซ็นใบยินยอม", ".-  ไม่ได้ NPO", ".-  ไม่ได้ถอดฟันปลอม /ของมีค่า/ลบเล็บ", "2.5 ส่งอุปกรณ์ไปORไม่ถูกต้อง"]},
+  {g:"ระบุตัวผู้ป่วย",s:"AI",i:["3.1 ติดสติ๊กเกอร์ผิด", "3.2 ส่งตรวจผิดคน/ส่งผ่าตัด", "3.3 ส่ง Lab ผิดคน", "3.4 ติด Lab ผิดคน", "3.5ไม่ติดป้ายข้อมือ", "3.6 เอ็กซเรย์ผิดคน", "3.7 ป้ายข้อมือผิดคน", "3.8 เรียกตรวจผิดคน/สมุดชมพู", "3.9 ทำหัตถการผิดคน/set ORผิดข้าง", "3.10 เจาะlab ผิดคน", "3.11 ระบุเพศผิด"]},
+  {g:"มารดา/ทารกเสียชีวิต",s:"AI",i:["4.1มารดาเสียชีวิตขณะดูแล", "4.2ทารก Arrest ขณะอยู่กับมารดา"]},
+  {g:"ผู้ป่วยฆ่าตัวตายในโรงพยาบาล",s:"AI",i:[]},
+  {g:"ET Tubeเลื่อน/หลุด/ดึงTube",s:"AI",i:["6.1 ET- tubeเลื่อน/หลุด", "6.2 ดึงTube"]},
+  {g:"พลัดตกหกล้ม/เป็นลม/ลื่น",s:"AI",i:["7.1 พลัดตกหกล้ม/ลื่นหกล้ม", "7.2 เป็นลม", "7.3 ตกเตียง", "7.4 ตกเก้าอี้", "7.5 ตกเปล"]},
+  {g:"Admin Error",s:"AI",i:["8.1 HAD (ระบุชื่อยา)", "8.2 ระดับ D", "8.3 ระดับ E ขึ้นไป (ต้องมีรายละเอียด)"]},
+  {g:"ผู้ป่วยมีภาวะArrest โดยไม่คาดคิด",s:"AI",i:["9.1 ขณะรอตรวจ", "9.2 ขณะส่งตรวจ/ทำหัตถการ", "9.3 ขณะดูแล"]},
+  {g:"ย้าย ICU โดยไม่ได้วางแผน",s:"AI",i:[]},
+  {g:"ทารก Arrest ขณะอยู่กับมารดา",s:"AI",i:[]},
+  {g:"admitted ผิด ward",s:"AI",i:[]},
+  {g:"เกิดแผลกดทับ(วันนอน)",s:"AI",i:["13.1 ICU", "13.2 Ward"]},
+  {g:"ดึง/เลื่อนหลุด (NG,Cath,Drain,Device)",s:"AI",i:["16.1 C line", "16.2 Foley cath", "16.3 Drain", "16.4 Cutdown"]},
+  {g:"Pheblitis/Extravasation",s:"AI",i:[]},
+  {g:"บาดเจ็บจากการถูกรัดตรึง",s:"AI",i:[]},
+  {g:"แพ้ยาซ้ำ",s:"AI",i:[]},
+  {g:"ผู้ป่วยหนีกลับ",s:"AI",i:[]},
+  {g:"การสื่อสาร",s:"AI",i:[]},
+  {g:"เจ้าหน้าที่บาดเจ็บ",s:"AI",i:["20.1 ถูกเข็มทิ่มตำ", "20.2 ถูกของมีคมตำ/บาด", "20.3 สารคัดหลั่งกระเด็นเข้าตา/ปาก"]},
+  {g:"เจ้าหน้าที่ถูกทำร้าย",s:"AI",i:[]},
+  {g:"Training Risk",s:"AI",i:["22.1 นศ.แพทย์", "22.2 นศ.พยาบาล", "22.3 RN ใหม่"]},
+  {g:"ข้อร้องเรียน",s:"AI",i:["23.1พฤติกรรมบริการ", "23.2ละเมิดสิทธิ์ผู้รับบริการ"]},
+  {g:"น้ำยา/อุปกรณ์หมดอายุ",s:"15",i:[]},
+  {g:"เครืองมือ/อุปกรณ์ติดไปกับผ้า",s:"15",i:[]},
+  {g:"เครื่องมือไม่พร้อมใช้ /วัสดุขาดคราว",s:"15",i:[]},
+  {g:"ผ้าไม่พอใช้",s:"15",i:[]},
+  {g:"ท่อน้ำประปารั่ว/ชำรุด",s:"15",i:[]},
+  {g:"Med Error",s:"AI",i:["Precribing error (สั่งยาผิด)", "Dispensing (จ่ายยาผิด)", "key ยาผิด / ไม่คียา"]},
+  {g:"Right Patient",s:"AI",i:["-ให้ยาผิดคน"]},
+  {g:"Right Drug",s:"AI",i:["-ให้ยาผิดชนิด", "-ให้ยาที่แพทย์ไม่มีคำสั่งการรักษา", "-ให้ยาที่ผู้ป่วยเคยมีประวัติแพ้ยา", "-ให้ยาที่หมดอายุ", "-ให้ยาเสื่อมคุณภาพ"]},
+  {g:"Right Dose",s:"AI",i:["-ให้ยาผิดขนาด", "-คำนวนขนาดยาผิด", "-ไม่สามารถใช้ยาที่มีเทคนิคบริหารพิเศษ เช่นยาพ่น", "-ให้ยาผิดความแรง", "-ให้ยาผิดความเข้มข้น", "-การเจือจางผิดสัดส่วน", "-ให้ยาซ้ำ", "-ให้ให้ยาที่แพทย์สั่งหยุด", "-การต่อยาโดยที่แพทย์ไม่ได้สั่ง", "-ไม่ได้ให้ยา / ลืมให้ยา / ข้ามไปให้เวลาใหม่"]},
+  {g:"Right Time",s:"AI",i:["-ให้ยาผิดไปจากเวลาที่กำหนด", "-ลืมให้ยา ให้เมื่อนึกได้", "-หยดให้ยาเร็วกว่าแพทย์กำหนด", "-หยดให้ยายาวนานกว่าแพทย์กำหนด", "-ให้ยาคลาดเคลื่อนระหว่างก่อน/หลังอาหาร"]},
+  {g:"Right Route",s:"AI",i:["-ผิดช่องทางเช่น IV IM Sc Oral", "-ให้ยาผิดอวัยวะ / ผิดข้าง"]},
+  {g:"Right Technique",s:"AI",i:["-ผสมเข้าด้วยกันไม่เหมาะสม", "-บริหารยาร่วม Y site ที่ไม่เหมาะสม", "-เดินยาเร็ว/ช้า กว่าที่ควรจะเป็น", "-เจือจางด้วยสารละลายที่ไม่เหมาะสม", "-ให้ยาผิดลำดับ(เคมีบำบัด)", "-บริหารยาด้วยเทคนิคไม่เหมาะสมส่งผลให้เกิดเหตุการณ์ไม่พึงประสงค์", "-บดยาที่ไม่ควรบด"]},
+  {g:"Right Record (ลงได้เฉพาะกรณี A Bที่ไม่มีผลต่อผู้ป่วย)",s:"AI",i:["-ไม่ลงชื่อในการบริหารยา", "-ไม่ได้ OFF ยา ในใบ MAR", "-ไม่คัดลอกรายการยาในใบ MAR", "-คัดลอกใบ MAR ผิดคน", "-คัดลอกใบ MAR ผิดชนิด", "-คัดลอกใบ MAR ผิดขนาด/ความแรง", "-คัดลอกใบ MAR ผิดเวลา", "-คัดลอกใบ MAR ผิดวิธี", "-คัดลอกใบ MAR ผิดเทคนิคการบริหารยา"]},
+  {g:"การเบิกยา (ลงได้เฉพาะกรณี A Bที่ไม่มีผลต่อผู้ป่วย)",s:"AI",i:["-เบิกยาผิดคน"]},
+];
+
+// A–I = คลินิก/ยา/Personnel Safety, 1–5 = Non-Clinic (ตามคู่มือ รพ.)
+const SEV_AI = [
+  ["A","A — มีโอกาสเกิด (ยังไม่ถึงผู้ป่วย)"],["B","B — เกิดแล้วแต่ไม่ถึงผู้ป่วย"],
+  ["C","C — ถึงผู้ป่วย ไม่อันตราย"],["D","D — ต้องเฝ้าระวัง"],
+  ["E","E — ต้องรักษาเพิ่ม"],["F","F — นอน รพ. นานขึ้น"],
+  ["G","G — พิการถาวร"],["H","H — ต้อง CPR"],["I","I — เสียชีวิต"]
+];
+const SEV_15 = [
+  ["1","1 — ไม่กระทบงาน (0–10,000 บ.)"],["2","2 — กระทบแต่คุมได้ (10,001–50,000 บ.)"],
+  ["3","3 — ต้องแก้ไข (50,001–250,000 บ.)"],["4","4 — ไม่บรรลุเป้าหมาย (250,001–10 ล.)"],
+  ["5","5 — เสียหายร้ายแรง (>10 ล.)"]
+];
+const SEV_HIGH = ["E","F","G","H","I","4","5"];   // ต้องทำ 12 กิจกรรมส่งฝ่ายการ
+
+function rmScaleFor(groupName){
+  const g = RM_GROUPS.find(x=>x.g === groupName);
+  return (g && g.s === "15") ? SEV_15 : SEV_AI;
+}
+// ทุกอุบัติการณ์ของเวรหนึ่ง เก็บเป็น array
+function getIncidents(sh){
+  const v = getDeep(data.shifts[sh], "events.incidents");
+  return Array.isArray(v) ? v : [];
+}
+function setIncidents(sh, arr){
+  setDeep(data.shifts[sh], "events.incidents", arr);
+  saveStore();
+}
+
+const GENERAL_OPTIONS = ["เหตุการณ์ทั่วไปปกติ","พบอุบัติการณ์ดังนี้"];
+const ETHICS_OPTIONS = ["ไม่พบความเสี่ยงด้านจริยธรรม","พบความเสี่ยงด้านจริยธรรม"];
+const GERM_OPTIONS = ["ไม่พบเชื้อดื้อยา","พบเชื้อดื้อยา"];
+const IC_ORGANISMS = ["MRSA","CRE","VRE","MDR GNB","XDR","ESBL","Pseudomonas MDR","C. difficile","อื่นๆ"];
+const IC_SPECIMENS = ["Urine","H/C","Sputum","แผล","อื่นๆ"];
+// สิ่งส่งตรวจที่ต้องระบุรายละเอียดต่อ
+const IC_SPEC_SITES = { "H/C": ["DLC","C-line","Peripheral","อื่นๆ"] };
+const IC_SPEC_NEED_TEXT = ["แผล","อื่นๆ"];     // ต้องพิมพ์ตำแหน่ง/ระบุเอง
+const IC_SEND_STATUS = ["รอพิจารณา","ส่ง IC แล้ว","ไม่ส่ง"];
+const IC_CLOSE_REASONS = ["เพาะเชื้อไม่ขึ้นแล้ว","จำหน่าย/ย้ายออก","อื่นๆ"];
+let icFormOpen = { "ดึก":false, "เช้า":false, "บ่าย":false };
+let icDraft = {};
+const IC_FOLLOW_DAYS = 30;   // ย้อนหลังที่ดึงมาแสดง
+const IC_WARN_DAYS  = 14;    // เตือนเมื่อเคสเปิดนานเกินนี้
+
+// ---- ข้อมูลผู้ป่วยจากระบบลงทะเบียน (อ่านอย่างเดียว) ----
+const REG_URL = "https://script.google.com/macros/s/AKfycbz67llALRKtVGJwVew6PKmVynCO6tibYGh4T5eiBdYHfabp4TStZ9ODHfDOCDc89zU6/exec";
+let regPatients = null;          // null = ยังไม่โหลด
+async function loadRegistry(){
+  if(regPatients) return regPatients;
+  try{
+    const res = await fetch(REG_URL + "?action=load&t=" + Date.now());
+    const j = await res.json();
+    regPatients = (j && j.ok && Array.isArray(j.patients)) ? j.patients : [];
+  }catch(err){ regPatients = []; }
+  return regPatients;
+}
+function regFind(hn){
+  if(!regPatients || !hn) return null;
+  const key = String(hn).trim();
+  return regPatients.find(p => String(p.hn || "").trim() === key) || null;
+}
+function regIsDischarged(hn){
+  const p = regFind(hn);
+  if(!p) return false;
+  return !!(p.dischargeDate || String(p.status || "").includes("จำหน่าย"));
+}
+
+// ---- ทะเบียนเชื้อ: เก็บรวมไว้ที่เดียว ไม่ผูกกับวัน ----
+const IC_KEY = "ic_cases";
+function icAll(){
+  try{ const v = JSON.parse(localStorage.getItem(IC_KEY) || "[]"); return Array.isArray(v) ? v : []; }
+  catch(e){ return []; }
+}
+function icSave(list){
+  localStorage.setItem(IC_KEY, JSON.stringify(list));
+  try{ localStorage.setItem("rcu_ic_pending_v1", String(Date.now())); }catch(e){}   // ทะเบียนเชื้อเปลี่ยน รอส่งขึ้นส่วนกลาง
+  scheduleCloudSave && scheduleCloudSave();
+}
+function daysBetween(aISO, bISO){
+  const a = new Date(aISO + "T00:00:00"), b = new Date(bISO + "T00:00:00");
+  return Math.round((b - a) / 86400000);
+}
+// เคสที่ยังติดตามอยู่ ณ วันที่กำหนด
+function icActive(dateKey){
+  return icAll().filter(x=>{
+    if(x.closed) return false;
+    const age = daysBetween(x.foundDate || x.createdDate, dateKey);
+    if(age < 0 || age > IC_FOLLOW_DAYS) return false;
+    if(regIsDischarged(x.hn)) return false;
+    return true;
+  });
+}
+const HN_FIXED_NAME = "คุณลักษณา มะโนชัย";
+
+function buildSelectOptions(list, current){
+  return list.map(opt=>`<option ${opt===current?"selected":""}>${opt}</option>`).join("");
+}
+
+let shiftEditState = { "ดึก":"editing", "เช้า":"editing", "บ่าย":"editing" };
+
+
+/* ---------------- เชื้อดื้อยา (IC) ---------------- */
+// รายการติดตาม: ติ๊กว่าวันนี้ยังพบผู้ป่วยรายนั้นอยู่
+function renderIcFollow(sh, locked){
+  const dis = locked ? "disabled" : "";
+  const active = icActive(currentDateKey);
+  const ticked = getDeep(data.shifts[sh], "events.germFollow") || {};
+  let html = `<div class="ic-wrap">`;
+  if(!active.length){
+    html += `<div class="ic-empty">ยังไม่มีผู้ป่วยเชื้อดื้อยาที่ติดตามอยู่ — ลงรายใหม่ได้ที่ตัวเลือก "พบเชื้อดื้อยารายใหม่"</div>`;
+  } else {
+    active.forEach(x=>{
+      // เคยติ๊กไว้ = ติ๊กต่อให้เอง จนกว่าจะเอาออกหรือปิดเคส
+      const on = (ticked[x.id] === undefined) ? true : !!ticked[x.id];
+      const age = daysBetween(x.foundDate || x.createdDate, currentDateKey);
+      html += `<label class="ic-follow">
+        <input type="checkbox" ${dis} ${on?"checked":""} class="ic-tick" data-sh="${sh}" data-id="${x.id}">
+        <span class="ic-follow-main">
+          <b>เตียง ${x.bed||"-"} · ${x.name||"(ไม่ทราบชื่อ)"}</b>${on?`<span class="ic-saved">✓ บันทึกแล้ว</span>`:""}
+          <span class="ic-sub">${x.organism||"-"}${x.hn?` · HN ${x.hn}`:""} · ลงเมื่อ ${thaiShort(x.foundDate||x.createdDate)} (${age} วัน)</span>
+          ${age >= IC_WARN_DAYS ? `<span class="ic-warn">⚠ ติดตามมา ${age} วันแล้ว — ยังพบเชื้ออยู่ไหม?</span>` : ""}
+        </span>
+        ${locked?"":`<button type="button" class="ic-close-btn" data-id="${x.id}">ปิดเคส</button>`}
+      </label>`;
+    });
+  }
+  if(!locked){
+    html += `<button type="button" class="ic-add-new" data-sh="${sh}">+ เพิ่มรายใหม่</button>`;
+    if(icFormOpen[sh]) html += renderIcNew(sh, locked);
+  }
+  html += `</div>`;
+  return html;
+}
+
+function thaiShort(iso){
+  if(!iso) return "-";
+  const [y,m,d] = iso.split("-").map(Number);
+  return `${d}/${m}/${y+543}`;
+}
+
+// ฟอร์มลงรายใหม่
+function renderIcNew(sh, locked){
+  const d = icDraft[sh] || (icDraft[sh] = {});
+  const dis = locked ? "disabled" : "";
+  const miss = icDraftMissing(sh);
+  return `<div class="ic-card ic-draft">
+      <div class="ic-head"><span>เพิ่มเชื้อดื้อยารายใหม่</span>
+        <button type="button" class="ic-cancel" data-sh="${sh}">ยกเลิก</button></div>
+      <div class="event-row2">
+        <div><label>HN</label>
+          <input ${dis} type="text" class="icd-f" data-sh="${sh}" data-k="hn" value="${d.hn||""}" placeholder="พิมพ์ HN"></div>
+        <div><label>เตียง</label>
+          <input ${dis} type="text" class="icd-f" data-sh="${sh}" data-k="bed" value="${d.bed||""}"></div>
+      </div>
+      <div class="ic-patient" id="ic-pt-${sh}">${icPatientLine(d, sh)}</div>
+      <div class="event-row2">
+        <div><label>เชื้อ</label>
+          <select ${dis} class="icd-f" data-sh="${sh}" data-k="organism">
+            <option value="">-- เลือก --</option>
+            ${IC_ORGANISMS.map(o=>`<option ${o===d.organism?"selected":""}>${o}</option>`).join("")}
+          </select></div>
+        <div><label>สิ่งส่งตรวจ</label>
+          <select ${dis} class="icd-f" data-sh="${sh}" data-k="specimen">
+            <option value="">-- เลือก --</option>
+            ${IC_SPECIMENS.map(o=>`<option ${o===d.specimen?"selected":""}>${o}</option>`).join("")}
+          </select></div>
+      </div>
+      ${d.organism === "อื่นๆ" ? `<label>ระบุชื่อเชื้อ</label>
+        <input ${dis} type="text" class="icd-f" data-sh="${sh}" data-k="organismOther" value="${d.organismOther||""}">` : ""}
+      ${IC_SPEC_SITES[d.specimen] ? `<label>ตำแหน่ง ${d.specimen}</label>
+        <select ${dis} class="icd-f" data-sh="${sh}" data-k="specSite">
+          <option value="">-- เลือก --</option>
+          ${IC_SPEC_SITES[d.specimen].map(o=>`<option ${o===d.specSite?"selected":""}>${o}</option>`).join("")}
+        </select>` : ""}
+      ${(IC_SPEC_NEED_TEXT.includes(d.specimen) || (IC_SPEC_SITES[d.specimen] && d.specSite === "อื่นๆ"))
+        ? `<label>ระบุตำแหน่ง/รายละเอียด</label>
+           <input ${dis} type="text" class="icd-f" data-sh="${sh}" data-k="specDetail" value="${d.specDetail||""}">` : ""}
+      <div class="event-row2">
+        <div><label>วันที่ส่ง lab</label>
+          <input ${dis} type="date" class="icd-f" data-sh="${sh}" data-k="labDate" value="${d.labDate || currentDateKey}"></div>
+        <div><label>วันที่ผลเพาะเชื้อ</label>
+          <input ${dis} type="date" class="icd-f" data-sh="${sh}" data-k="foundDate" value="${d.foundDate||""}"></div>
+      </div>
+      <label>สถานะส่ง IC</label>
+      <select ${dis} class="icd-f" data-sh="${sh}" data-k="sendStatus">
+        ${IC_SEND_STATUS.map(o=>`<option ${o===d.sendStatus?"selected":""}>${o}</option>`).join("")}
+      </select>
+      <label>หมายเหตุ</label>
+      <textarea ${dis} rows="2" class="icd-f" data-sh="${sh}" data-k="note">${d.note||""}</textarea>
+      ${miss.length ? `<div class="ic-need">ยังขาด: ${miss.join(" · ")}</div>` : ""}
+      <div class="ic-add-row"><button type="button" class="ic-commit" data-sh="${sh}">เพิ่ม</button></div>
+    </div>`;
+}
+
+// ช่องบังคับของฟอร์มรายใหม่
+function icDraftMissing(sh){
+  const d = icDraft[sh] || {};
+  const need = [["hn","HN"],["bed","เตียง"],["organism","เชื้อ"],["specimen","สิ่งส่งตรวจ"],["foundDate","วันที่ผลเพาะเชื้อ"]];
+  if(d.organism === "อื่นๆ") need.push(["organismOther","ชื่อเชื้อ"]);
+  if(IC_SPEC_SITES[d.specimen]) need.push(["specSite",`ตำแหน่ง ${d.specimen}`]);
+  if(IC_SPEC_NEED_TEXT.includes(d.specimen) || (IC_SPEC_SITES[d.specimen] && d.specSite === "อื่นๆ"))
+    need.push(["specDetail","ระบุตำแหน่ง/รายละเอียด"]);
+  return need.filter(([k])=> !String(d[k]||"").trim()).map(([,label])=>label);
+}
+
+function icPatientLine(x, sh){
+  if(!x.hn) return `<span class="ic-hint">พิมพ์ HN เพื่อดึงข้อมูลผู้ป่วย</span>`;
+  const p = regFind(x.hn);
+  if(!p) return `<span class="ic-hint">ไม่พบ HN นี้ในระบบลงทะเบียน — กรอกชื่อเอง:
+    <input type="text" class="icd-f" data-sh="${sh}" data-k="name" value="${x.name||""}" placeholder="ชื่อ-นามสกุล"></span>`;
+  return `<span class="ic-found"><b>${p.name||"-"}</b>${p.age?` · ${p.gender||""} ${p.age} ปี`:""}
+    ${p.admitFrom?` · รับจาก ${p.admitFrom}`:""}${p.diagnosis?` · ${p.diagnosis}`:""}</span>`;
+}
+
+// ---- handlers ของ IC ----
+function icNewId(){ return "ic" + Date.now() + Math.random().toString(36).slice(2,6); }
+
+document.getElementById("daily-table-wrap").addEventListener("click", (e)=>{
+  const addNew = e.target.closest(".ic-add-new");
+  const cancel = e.target.closest(".ic-cancel");
+  const commit = e.target.closest(".ic-commit");
+  const close  = e.target.closest(".ic-close-btn");
+
+  if(addNew){
+    const sh = addNew.dataset.sh;
+    icFormOpen[sh] = true;
+    icDraft[sh] = { labDate: currentDateKey, sendStatus: IC_SEND_STATUS[0] };
+    renderEventsRow();
+  } else if(cancel){
+    const sh = cancel.dataset.sh;
+    icFormOpen[sh] = false; icDraft[sh] = {};
+    renderEventsRow();
+  } else if(commit){
+    const sh = commit.dataset.sh;
+    const miss = icDraftMissing(sh);
+    if(miss.length){ showPopup("กรุณากรอกให้ครบก่อนเพิ่ม:\n- " + miss.join("\n- ")); return; }
+    const d = icDraft[sh];
+    const p = regFind(d.hn);
+    const list = icAll();
+    const id = icNewId();
+    list.push({ id, shift:sh, createdDate:currentDateKey,
+                hn:d.hn, bed:d.bed, name:(p && p.name) || d.name || "",
+                admitFrom:(p && p.admitFrom) || "", diagnosis:(p && p.diagnosis) || "",
+                organism:d.organism, organismOther:d.organismOther||"", specimen:d.specimen,
+                specSite:d.specSite||"", specDetail:d.specDetail||"",
+                labDate:d.labDate||currentDateKey, foundDate:d.foundDate,
+                sendStatus:d.sendStatus||IC_SEND_STATUS[0], note:d.note||"", closed:false });
+    icSave(list);
+    // เคสใหม่ถือว่าพบวันนี้ จึงติ๊กไว้ให้เลย
+    const ticked = getDeep(data.shifts[sh], "events.germFollow") || {};
+    ticked[id] = true;
+    setDeep(data.shifts[sh], "events.germFollow", ticked);
+    saveStore();
+    icFormOpen[sh] = false; icDraft[sh] = {};
+    renderEventsRow();
+  } else if(close){
+    const id = close.dataset.id;
+    const reason = prompt("เหตุผลที่ปิดเคส:\n1 = เพาะเชื้อไม่ขึ้นแล้ว\n2 = จำหน่าย/ย้ายออก\n3 = อื่นๆ", "1");
+    if(reason === null) return;
+    const list = icAll();
+    const it = list.find(x=>x.id === id);
+    if(it){
+      it.closed = true;
+      it.closeReason = IC_CLOSE_REASONS[(parseInt(reason)||1) - 1] || IC_CLOSE_REASONS[2];
+      it.closeDate = currentDateKey;
+      icSave(list); renderEventsRow();
+    }
+  }
+});
+
+// ฟอร์มร่าง: เก็บค่าไว้ก่อน ยังไม่บันทึกจนกว่าจะกด "เพิ่ม"
+document.getElementById("daily-table-wrap").addEventListener("input", async (e)=>{
+  const t = e.target.closest(".icd-f");
+  if(!t || t.tagName === "SELECT") return;
+  const sh = t.dataset.sh;
+  icDraft[sh] = icDraft[sh] || {};
+  icDraft[sh][t.dataset.k] = t.value;
+  if(t.dataset.k === "hn"){
+    await loadRegistry();
+    const box = document.getElementById(`ic-pt-${sh}`);
+    if(box) box.innerHTML = icPatientLine(icDraft[sh], sh);
+  }
+});
+document.getElementById("daily-table-wrap").addEventListener("change", (e)=>{
+  const t = e.target.closest(".icd-f");
+  if(!t || t.tagName !== "SELECT") return;
+  const sh = t.dataset.sh;
+  icDraft[sh] = icDraft[sh] || {};
+  icDraft[sh][t.dataset.k] = t.value;
+  if(["organism","specimen","specSite"].includes(t.dataset.k)) renderEventsRow();  // โชว์ช่องที่ต้องระบุเพิ่ม
+});
+
+// ติ๊กรายการติดตาม = บันทึกทันที
+document.getElementById("daily-table-wrap").addEventListener("change", (e)=>{
+  const tick = e.target.closest(".ic-tick");
+  if(!tick) return;
+  const sh = tick.dataset.sh;
+  const cur = getDeep(data.shifts[sh], "events.germFollow") || {};
+  cur[tick.dataset.id] = tick.checked;
+  setDeep(data.shifts[sh], "events.germFollow", cur);
+  saveStore();
+  renderEventsRow();           // อัปเดตป้าย "✓ บันทึกแล้ว"
+});
+
+/* ---------------- อุบัติการณ์ (RM) ---------------- */
+function renderIncidents(sh, locked){
+  const list = getIncidents(sh);
+  const dis = locked ? "disabled" : "";
+  let html = `<div class="inc-wrap">`;
+  list.forEach((it,idx)=>{
+    const scale = rmScaleFor(it.group);
+    const high = SEV_HIGH.includes(it.sev);
+    const grp = RM_GROUPS.find(x=>x.g === it.group);
+    html += `<div class="inc-card">
+      <div class="inc-head">
+        <span>อุบัติการณ์ที่ ${idx+1}</span>
+        ${locked?"":`<button type="button" class="inc-del" data-sh="${sh}" data-i="${idx}">ลบ</button>`}
+      </div>
+      <label>หมวด</label>
+      <select ${dis} class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="group">
+        <option value="">-- เลือกหมวด --</option>
+        ${RM_GROUPS.map(x=>`<option ${x.g===it.group?"selected":""}>${x.g}</option>`).join("")}
+      </select>
+      ${(grp && grp.i.length) ? `
+        <label>รายการย่อย</label>
+        <select ${dis} class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="item">
+          <option value="">-- เลือกรายการ --</option>
+          ${grp.i.map(x=>`<option ${x===it.item?"selected":""}>${x}</option>`).join("")}
+        </select>` : ""}
+      <label>ระดับความรุนแรง</label>
+      <select ${dis} class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="sev">
+        <option value="">-- เลือกระดับ --</option>
+        ${scale.map(([v,t])=>`<option value="${v}" ${v===it.sev?"selected":""}>${t}</option>`).join("")}
+      </select>
+      ${high ? `<div class="inc-warn">⚠ ระดับนี้ต้องทำ 12 กิจกรรม ส่งฝ่ายการพยาบาล</div>` : ""}
+      <div class="event-row2">
+        <div><label>เตียง</label><input ${dis} type="text" class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="bed" value="${it.bed||""}"></div>
+        <div><label>HN</label><input ${dis} type="text" class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="hn" value="${it.hn||""}"></div>
+      </div>
+      <label>รายละเอียดเหตุการณ์</label>
+      <textarea ${dis} rows="2" class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="detail">${it.detail||""}</textarea>
+      <label>การจัดการ/แก้ไข</label>
+      <textarea ${dis} rows="2" class="inc-f" data-sh="${sh}" data-i="${idx}" data-k="action">${it.action||""}</textarea>
+    </div>`;
+  });
+  if(!locked) html += `<button type="button" class="inc-add" data-sh="${sh}">+ เพิ่มอุบัติการณ์</button>`;
+  if(locked && !list.length) html += `<div class="inc-empty">ไม่มีรายละเอียด</div>`;
+  html += `</div>`;
+  return html;
+}
+
+document.getElementById("daily-table-wrap").addEventListener("click", (e)=>{
+  const add = e.target.closest(".inc-add");
+  const del = e.target.closest(".inc-del");
+  if(add){
+    const sh = add.dataset.sh;
+    const arr = getIncidents(sh).slice();
+    arr.push({group:"",item:"",sev:"",bed:"",hn:"",detail:"",action:""});
+    setIncidents(sh, arr);
+    renderEventsRow();
+  } else if(del){
+    const sh = del.dataset.sh, i = +del.dataset.i;
+    const arr = getIncidents(sh).slice();
+    arr.splice(i,1);
+    setIncidents(sh, arr);
+    renderEventsRow();
+  }
+});
+
+document.getElementById("daily-table-wrap").addEventListener("input", (e)=>{
+  const t = e.target.closest(".inc-f");
+  if(!t || t.tagName === "SELECT") return;
+  const arr = getIncidents(t.dataset.sh).slice();
+  arr[+t.dataset.i][t.dataset.k] = t.value;
+  setIncidents(t.dataset.sh, arr);
+});
+document.getElementById("daily-table-wrap").addEventListener("change", (e)=>{
+  const t = e.target.closest(".inc-f");
+  if(!t || t.tagName !== "SELECT") return;
+  const sh = t.dataset.sh, i = +t.dataset.i, k = t.dataset.k;
+  const arr = getIncidents(sh).slice();
+  arr[i][k] = t.value;
+  // เปลี่ยนหมวด -> ล้างรายการย่อยและระดับ เพราะชุดตัวเลือกเปลี่ยน
+  if(k === "group"){ arr[i].item = ""; arr[i].sev = ""; }
+  setIncidents(sh, arr);
+  renderEventsRow();
+});
+
+function renderEventsRow(){
+  const scrollRow = document.getElementById("event-scroll-row");
+  scrollRow.innerHTML = SHIFTS.map(sh=>buildEventCardHtml(sh)).join("");
+}
+
+function scrollToEventCard(sh){
+  const el = document.getElementById(`event-slot-${sh}`);
+  if(el) el.scrollIntoView({behavior:"smooth", inline:"start", block:"nearest"});
+}
+
+function buildEventCardHtml(sh){
+  const sd = data.shifts[sh];
+  const g = (p)=> { const v = getDeep(sd,p); return v!==undefined&&v!==null? v : ""; };
+  const submitted = shiftEditState[sh] === "submitted";
+  const dis = submitted ? "disabled" : "";
+
+  const staffStatus = g('events.staffStatus') || STAFF_STATUS_OPTIONS[0];
+  const showStaffCount = staffStatus !== STAFF_STATUS_OPTIONS[0];
+
+  const generalStatus = g('events.general') || GENERAL_OPTIONS[0];
+  const showGeneralDetail = generalStatus === GENERAL_OPTIONS[1];
+
+  const ethicsStatus = g('events.ethics') || ETHICS_OPTIONS[0];
+  const showEthicsDetail = ethicsStatus === ETHICS_OPTIONS[1];
+
+  const germStatus = g('events.germStatus') || GERM_OPTIONS[0];
+  const showGermDetail = germStatus === GERM_OPTIONS[1];
+
+  return `<div class="event-card-slot" id="event-slot-${sh}"><div class="event-card card-${sh}">
+      <h4>เวร${sh} (${EVENT_TIME_LABEL[sh]}) ${submitted?'<span class="submitted-tag">ยืนยันแล้ว</span>':""}</h4>
+
+      <div class="event-field"><label>การขึ้นปฏิบัติงานของเจ้าหน้าที่</label>
+        <div class="event-row2" style="grid-template-columns:${showStaffCount?"1.4fr .6fr":"1fr"}">
+          <select ${dis} data-shift="${sh}" data-f="events.staffStatus" class="conditional-select">${buildSelectOptions(STAFF_STATUS_OPTIONS, staffStatus)}</select>
+          ${showStaffCount ? `<input ${dis} type="number" min="0" placeholder="ราย" data-shift="${sh}" data-f="events.staffCount" value="${g('events.staffCount')}">` : ""}
+        </div>
+      </div>
+
+      <div class="event-field"><label>เหตุการณ์ทั่วไป</label>
+        <select ${dis} data-shift="${sh}" data-f="events.general" class="conditional-select">${buildSelectOptions(GENERAL_OPTIONS, generalStatus)}</select>
+        ${showGeneralDetail ? renderIncidents(sh, submitted) : ""}
+      </div>
+
+      <div class="event-field"><label>ความเสี่ยงด้านจริยธรรม</label>
+        <select ${dis} data-shift="${sh}" data-f="events.ethics" class="conditional-select">${buildSelectOptions(ETHICS_OPTIONS, ethicsStatus)}</select>
+        ${showEthicsDetail ? `<textarea ${dis} style="margin-top:6px" rows="3" data-shift="${sh}" data-f="events.ethicsDetail" placeholder="รายละเอียดความเสี่ยง">${g('events.ethicsDetail')}</textarea>` : ""}
+      </div>
+
+      <div class="event-field"><label>เชื้อดื้อยา</label>
+        <select ${dis} data-shift="${sh}" data-f="events.germStatus" class="conditional-select">${buildSelectOptions(GERM_OPTIONS, germStatus)}</select>
+        ${germStatus === GERM_OPTIONS[1] ? renderIcFollow(sh, submitted) : ""}
+      </div>
+
+      <div class="event-row2">
+        <div class="event-field"><label>Incharge (ผู้บันทึก)</label>
+          <select ${dis} data-shift="${sh}" data-f="incharge">
+            <option value="" ${g('incharge')===""?"selected":""}>-- เลือก Incharge --</option>
+            ${buildSelectOptions(INCHARGE_ROSTER, g('incharge'))}
+          </select>
+        </div>
+        <div class="event-field"><label>HN</label>
+          <input type="text" value="${HN_FIXED_NAME}" readonly disabled>
+        </div>
+      </div>
+
+      <div class="event-submit-row">
+        ${submitted
+          ? `<button type="button" class="btn-event-edit" data-shift="${sh}">Edit</button>`
+          : `<button type="button" class="btn-event-submit" data-shift="${sh}">Submit</button>`}
+      </div>
+    </div></div>`;
+}
+
+function validateEventCard(sh){
+  const sd = data.shifts[sh];
+  const g = (p)=> { const v = getDeep(sd,p); return v!==undefined&&v!==null? String(v).trim() : ""; };
+  const missing = [];
+
+  const productivity = getDeep(data.shifts[sh], "productivity");
+  if(productivity === undefined || productivity === null || String(productivity).trim() === "") missing.push("Productivity");
+
+  const staffStatus = g('events.staffStatus') || STAFF_STATUS_OPTIONS[0];
+  if(staffStatus !== STAFF_STATUS_OPTIONS[0] && !g('events.staffCount')) missing.push("จำนวนเจ้าหน้าที่ (ราย)");
+
+  const generalStatus = g('events.general') || GENERAL_OPTIONS[0];
+  if(generalStatus === GENERAL_OPTIONS[1]){
+    const inc = getIncidents(sh);
+    if(!inc.length) missing.push("ยังไม่ได้เพิ่มอุบัติการณ์");
+    else inc.forEach((it,n)=>{
+      if(!it.group || !it.sev) missing.push(`อุบัติการณ์ที่ ${n+1}: เลือกหมวดและระดับให้ครบ`);
+    });
+  }
+
+  const ethicsStatus = g('events.ethics') || ETHICS_OPTIONS[0];
+  if(ethicsStatus === ETHICS_OPTIONS[1] && !g('events.ethicsDetail')) missing.push("รายละเอียดความเสี่ยงจริยธรรม");
+
+  const germStatus = g('events.germStatus') || GERM_OPTIONS[0];
+  if(germStatus === GERM_OPTIONS[1]){
+    const ticked = getDeep(data.shifts[sh], "events.germFollow") || {};
+    const anyTicked = Object.keys(ticked).some(id=>ticked[id]);
+    if(!anyTicked) missing.push("เชื้อดื้อยา: ติ๊กรายการที่พบ หรือเพิ่มรายใหม่");
+  }
+
+  if(!g('incharge')) missing.push("Incharge");
+
+  if(!g('staff.RN.normal')) missing.push("RN");
+  if(!g('staff.NA.normal')) missing.push("NA");
+  if(!g('staff.W.normal')) missing.push("W (คนงาน)");
+  if(!g('ptype.p5')) missing.push("ผป.ประเภท 5");
+  if(!g('ptype.p4')) missing.push("ผป.ประเภท 4");
+  if(!g('ptype.p3')) missing.push("ผป.ประเภท 3");
+  if(!g('ptype.p2')) missing.push("ผป.ประเภท 2");
+
+  if(invalidRemainShifts.has(sh)) missing.push("ยอดคงพยาบาลไม่ถูกต้อง (เกิน 8 เตียง หรือติดลบ) — ตรวจสอบยอดรับ/ย้าย/จำหน่าย");
+
+  return missing;
+}
+
+function setShiftFieldsLocked(sh, locked){
+  document.querySelectorAll(`table.daily-table [data-shift="${sh}"]`).forEach(el=>{
+    if(el.dataset.f === "census.remain") return; // already permanently read-only (computed)
+    el.disabled = locked;
+  });
+}
+
+document.getElementById("daily-table-wrap").addEventListener("click", (e)=>{
+  const submitBtn = e.target.closest(".btn-event-submit");
+  const editBtn = e.target.closest(".btn-event-edit");
+  if(submitBtn){
+    const sh = submitBtn.dataset.shift;
+    const missingList = validateEventCard(sh);
+    if(missingList.length > 0){
+      showPopup(`กรุณากรอกให้ครบก่อน Submit เวร${sh}:\n- ${missingList.join("\n- ")}`);
+      return;
+    }
+    shiftEditState[sh] = "submitted";
+    saveStore();
+    setShiftFieldsLocked(sh, true);
+    const idx = SHIFTS.indexOf(sh);
+    const nextShift = SHIFTS[idx+1];
+    renderEventsRow();
+    scrollToEventCard(nextShift || sh);
+  } else if(editBtn){
+    const sh = editBtn.dataset.shift;
+    shiftEditState[sh] = "editing";
+    saveStore();
+    setShiftFieldsLocked(sh, false);
+    renderEventsRow();
+    scrollToEventCard(sh);
+  }
+});
+
+// one delegated listener handles every field across all 3 shifts
+const REMAIN_INPUT_PATHS = ["census.carry","census.newAdmit","census.transferIn","census.discharge","census.transferOut","census.dead"];
+function computeRemain(sh){
+  const sd = data.shifts[sh];
+  const num = (path)=> { const v = getDeep(sd, path); const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  return num("census.carry") + num("census.newAdmit") + num("census.transferIn")
+       - num("census.discharge") - num("census.transferOut") - num("census.dead");
+}
+let invalidRemainShifts = new Set();
+function updateRemainDisplay(sh){
+  const val = computeRemain(sh);
+  setDeep(data.shifts[sh], "census.remain", val);
+  const el = document.querySelector(`#daily-table-wrap input[data-shift="${sh}"][data-f="census.remain"]`);
+  if(el) el.value = val;
+  renderP4pdList(); // คงพยาบาล is mirrored into the p4p tab
+
+  if(val > 8 || val < 0){
+    invalidRemainShifts.add(sh);
+    if(el) el.classList.add("input-invalid");
+    showPopup(`เวร${sh}: คำนวณคงพยาบาลได้ ${val} คน ไม่ถูกต้อง (ต้องอยู่ระหว่าง 0-8 เตียง)\nกรุณาตรวจสอบยอดยกมา/รับใหม่/รับย้าย/จำหน่าย/ย้าย-ส่งต่อ/ถึงแก่กรรม`);
+  } else {
+    invalidRemainShifts.delete(sh);
+    if(el) el.classList.remove("input-invalid");
+  }
+
+  const idx = SHIFTS.indexOf(sh);
+  const nextShift = SHIFTS[idx+1];
+  if(nextShift){
+    setDeep(data.shifts[nextShift], "census.carry", val);
+    const nextInput = document.querySelector(`#daily-table-wrap input[data-shift="${nextShift}"][data-f="census.carry"]`);
+    if(nextInput) nextInput.value = val;
+    updateRemainDisplay(nextShift); // cascade: next shift's own remain depends on its carry too
+  }
+}
+
+document.getElementById("daily-table-wrap").addEventListener("input", (e)=>{
+  const t = e.target;
+  const sh = t.dataset.shift, path = t.dataset.f;
+  if(!sh || !path) return;
+  if(path === "census.remain") return; // read-only, computed field — never set directly
+
+  if(path === "census.carry"){
+    const num = Number(t.value);
+    if(t.value !== "" && !isNaN(num) && num > 8){
+      showPopup("จำนวนยอดยกมาต้องไม่เกิน 8 เตียง (RCU1 มี 8 เตียง)");
+      t.value = "8";
+    }
+  }
+
+  setDeep(data.shifts[sh], path, t.value);
+
+  if(path.startsWith("staff.") || path.startsWith("census.")) renderP4pdList(); // p4p mirrors these
+
+  if(REMAIN_INPUT_PATHS.includes(path)) updateRemainDisplay(sh);
+});
+document.getElementById("daily-table-wrap").addEventListener("change", (e)=>{
+  const t = e.target;
+  if(t.tagName !== "SELECT") return;
+  const sh = t.dataset.shift, path = t.dataset.f;
+  if(!sh || !path) return;
+  setDeep(data.shifts[sh], path, t.value);
+  if(t.classList.contains("conditional-select")) renderEventsRow();
+});
+
+
+/* ---------------- tabs & shift switching ---------------- */
+const PER_SHIFT_TABS = ["proc"];
+document.querySelectorAll("nav.tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll("section.panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById(btn.dataset.tab).classList.add("active");
+    document.getElementById("local-shift-picker").style.display =
+      PER_SHIFT_TABS.includes(btn.dataset.tab) ? "flex" : "none";
+  });
+});
+document.querySelectorAll(".shift-btn").forEach(btn=>{
+  if(btn.dataset.shift===currentShift) btn.classList.add("active");
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".shift-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    currentShift = btn.dataset.shift;
+    renderProcList();
+  });
+});
+
+/* ---------------- init ---------------- */
+function renderAllForCurrentDay(){
+  renderDailyTable();
+  renderProcList();
+  renderP4pdList();
+}
+
+loadStore();
+{
+  const dateInput = document.getElementById("rec-date");
+  dateInput.value = localISO();
+  switchToDate(dateInput.value);
+  renderAllForCurrentDay();
+
+  dateInput.addEventListener("change", ()=>{
+    switchToDate(dateInput.value);
+    renderAllForCurrentDay();
+  });
+
+  const thisMonth = localISO().slice(0,7);
+  document.getElementById("mr-from").value = thisMonth;
+  document.getElementById("mr-to").value = thisMonth;
+  const expDate = document.getElementById("exp-date");
+  expDate.value = dateInput.value;
+  dateInput.addEventListener("change", ()=>{ expDate.value = dateInput.value; });
+}
+// persist continuously so nothing is lost when the tab closes
+document.addEventListener("input", saveStore);
+document.addEventListener("change", saveStore);
+window.addEventListener("beforeunload", saveStore);
+
+/* ================= เชื่อมข้อมูลส่วนกลาง (Google Sheets) ================= */
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxw60qoCGFEs6vtibn0nGq2uvTOp6yxbH9HIc2BEdNGeBQi-a7-iN_lfdjFWFnoHY9f/exec";
+const CLOUD_KIND = "shift";
+
+/* ---- ต้องผ่านหน้าใส่รหัสก่อน ---- */
+const AUTH_KEY = "rcu_auth_pw";
+const AUTH_PW = localStorage.getItem(AUTH_KEY);
+if(!AUTH_PW){ location.replace("index.html"); }
+function authed(){ return !!AUTH_PW; }
+
+
+function setSync(msg, cls){
+  // ป้ายสถานะสั้นๆ แบบเดียวกับหน้าลงทะเบียน ข้อความเต็มเก็บไว้ใน title (แตะป้ายแดงเพื่อดู)
+  const el = document.getElementById("sync-status");
+  let label, color;
+  if(cls === "ok"){ label = "☁️ ซิงค์แล้ว"; color = "#00e676"; }
+  else if(cls === "busy"){
+    if(/บันทึก/.test(msg)){ label = "⏳ กำลังบันทึก..."; color = "#ffd600"; }
+    else { label = "⏳ กำลังโหลด..."; color = "#00d4ff"; }
+  }
+  else if(cls === "bad"){
+    color = "#ff6b6b";
+    if(/เสียหาย/.test(msg)) label = "⚠️ ข้อมูลเสีย แตะเพื่อแก้";
+    else if(/โหลด/.test(msg) && /ไม่สำเร็จ|ไม่ได้/.test(msg) && !/ยังไม่ขึ้นส่วนกลาง/.test(msg)) label = "⚠️ โหลดไม่ได้ แตะดู";
+    else label = "⚠️ ซิงค์ไม่ได้ แตะดู";
+  }
+  else { label = "⏳ กำลังโหลด..."; color = "#00d4ff"; }
+  el.textContent = label;
+  el.title = msg;
+  el.className = cls || "";
+  el.style.color = color;
+}
+
+/* ===== รหัสวันในชีท =====
+   ชีทแปลงข้อความ "2026-10-08" เป็นวันที่เอง ทำให้หาแถวเดิมไม่เจอ (เครื่องอื่นไม่เห็น และเพิ่มแถวซ้ำทุกครั้ง) จึงเติม D นำหน้า */
+function cloudDayKey(k){ return "D" + k; }
+const MON3 = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+// แปลงรหัสจากชีทกลับเป็น yyyy-mm-dd พร้อมลำดับความเชื่อถือ: รหัสใหม่ > ข้อความแบบเดิม > แถวเดิมที่ถูกแปลงเป็นวันที่ (กู้คืนได้)
+function parseServerDayKey(k){
+  k = String(k);
+  let m = k.match(/^D(\d{4}-\d{2}-\d{2})$/); if(m) return { date:m[1], prio:3 };
+  m = k.match(/^(\d{4}-\d{2}-\d{2})$/); if(m) return { date:m[1], prio:2 };
+  m = k.match(/^[A-Z][a-z]{2} ([A-Z][a-z]{2}) (\d{1,2}) (\d{4})/);          // "Thu Oct 08 2026 00:00:00 GMT+0700 ..."
+  if(m && MON3[m[1]]) return { date:`${m[3]}-${String(MON3[m[1]]).padStart(2,"0")}-${String(m[2]).padStart(2,"0")}`, prio:1 };
+  return null;
+}
+function thaiShortDate(k){ const [y,m,d] = k.split("-").map(Number); return `${d}/${m}/${y+543}`; }
+
+/* ===== บีบอัดเมื่อข้อมูลใหญ่ (เซลล์ชีทเก็บได้ไม่เกิน 50,000 ตัวอักษร) ===== */
+function loadPako(){
+  return new Promise((res, rej)=>{
+    if(window.pako) return res(window.pako);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
+    s.onload = ()=> window.pako ? res(window.pako) : rej(new Error("โหลดตัวบีบอัดไม่สำเร็จ"));
+    s.onerror = ()=> rej(new Error("โหลดตัวบีบอัดไม่สำเร็จ"));
+    document.head.appendChild(s);
+  });
+}
+async function gzipBytes(str){
+  if(typeof CompressionStream !== "undefined"){
+    const cs = new CompressionStream("gzip"), wr = cs.writable.getWriter();
+    wr.write(new TextEncoder().encode(str)); wr.close();
+    return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  }
+  return (await loadPako()).gzip(str);
+}
+async function gunzipText(bytes){
+  if(typeof DecompressionStream !== "undefined"){
+    const ds = new DecompressionStream("gzip"), wr = ds.writable.getWriter();
+    wr.write(bytes); wr.close();
+    return await new Response(ds.readable).text();
+  }
+  return (await loadPako()).ungzip(bytes, { to:"string" });
+}
+function bytesToB64(bytes){ let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
+function b64ToBytes(b64){ const bin=atob(b64), out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+async function packData(obj){ return { z: "gz1:" + bytesToB64(await gzipBytes(JSON.stringify(obj))) }; }
+async function packIfLarge(obj){ return JSON.stringify(obj).length > 40000 ? packData(obj) : obj; }
+async function unpackData(d){
+  if(d && typeof d.z === "string" && d.z.indexOf("gz1:") === 0) return JSON.parse(await gunzipText(b64ToBytes(d.z.slice(4))));
+  return d;
+}
+
+/* ===== งานที่ค้างส่ง: จดไว้ในเครื่อง ส่งสำเร็จค่อยลบ (ปิดหน้า/เน็ตหลุด ก็ไม่หาย) ===== */
+function pendingAll(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "{}") || {}; }catch(e){ return {}; } }
+function pendingSave(p){ try{ localStorage.setItem(PENDING_KEY, JSON.stringify(p)); }catch(e){} }
+function pendingMark(k){
+  const p = pendingAll();
+  if(p[k]) p[k].t = Date.now();
+  else p[k] = { t: Date.now(), base: baseSnap[k] || null };
+  pendingSave(p);
+}
+function icPendingT(){ return parseInt(localStorage.getItem(IC_PENDING_KEY) || "0") || 0; }
+
+/* ===== รวมข้อมูลสามทาง: ช่องที่เครื่องนี้แก้ (ต่างจากฉบับตั้งต้น) ใช้ของเครื่องนี้ ช่องอื่นใช้ของส่วนกลาง =====
+   สองคนแก้วันเดียวกันคนละเวร/คนละช่อง จึงไม่ทับกัน */
+function isObj(v){ return v && typeof v === "object" && !Array.isArray(v); }
+function merge3(base, local, server){
+  if(isObj(local) && isObj(server)){
+    const out = {};
+    const keys = new Set([...Object.keys(server), ...Object.keys(local), ...(isObj(base) ? Object.keys(base) : [])]);
+    keys.forEach(k=>{ const v = merge3(isObj(base) ? base[k] : undefined, local[k], server[k]); if(v !== undefined) out[k] = v; });
+    return out;
+  }
+  return JSON.stringify(local) !== JSON.stringify(base) ? local : server;
+}
+// ทะเบียนเชื้อ: รวมสองฝั่งตามรหัสเคส (ไม่มีเคสหาย) เคสที่ปิดแล้วชนะเสมอ
+function mergeCases(server, local, preferLocal){
+  const m = new Map();
+  (server || []).forEach(x=>{ if(x && x.id) m.set(x.id, x); });
+  (local || []).forEach(x=>{
+    if(!x || !x.id) return;
+    const s = m.get(x.id);
+    if(!s) m.set(x.id, x);
+    else if(x.closed && !s.closed) m.set(x.id, x);
+    else if(!x.closed && s.closed) {}
+    else if(preferLocal) m.set(x.id, x);
+  });
+  return [...m.values()];
+}
+
+async function getOne(kind, key){
+  const res = await fetch(`${CLOUD_URL}?kind=${kind}&date=${encodeURIComponent(key)}&pw=${encodeURIComponent(AUTH_PW)}`);
+  const j = await res.json();
+  if(!j.ok) return { ok:false, error: j.error || "อ่านไม่สำเร็จ" };
+  return { ok:true, data: await unpackData(j.data || {}) };
+}
+async function postOne(kind, key, data){
+  const res = await fetch(CLOUD_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" },      // text/plain เลี่ยง CORS preflight ที่ Apps Script ตอบไม่ได้
+    body: JSON.stringify({ pw: AUTH_PW, kind, date: key, data })
+  });
+  const j = await res.json();
+  if(!j.ok) throw new Error(j.error || "บันทึกไม่สำเร็จ");
+  return j;
+}
+
+// โหลดทุกวันจากส่วนกลาง: วันที่ยังมีงานค้างในเครื่อง ของในเครื่องชนะ (แล้วค่อยส่งขึ้นไปรวม)
+async function cloudLoad(silent){
+  if(!authed()) return;
+  setSync("กำลังโหลดจากส่วนกลาง…", "busy");
+  const regPromise = getOne("ic", "registry").catch(()=>null);      // ดึงทะเบียนเชื้อพร้อมกัน ไม่ต้องรอต่อคิว
+  try{
+    const res = await fetch(`${CLOUD_URL}?kind=${CLOUD_KIND}&all=1&pw=${encodeURIComponent(AUTH_PW)}`);
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "โหลดไม่สำเร็จ");
+    const raw = j.data || {};
+    const best = {};
+    Object.keys(raw).forEach(k=>{
+      const info = parseServerDayKey(k); if(!info) return;
+      if(!best[info.date] || info.prio > best[info.date].prio) best[info.date] = { prio: info.prio, data: raw[k] };
+    });
+    const pend = pendingAll();
+    let n = 0, curReplaced = false;
+    for(const d of Object.keys(best)){
+      let rec; try{ rec = await unpackData(best[d].data); }catch(e){ continue; }
+      if(!rec || !rec.shifts) continue;
+      n++;
+      if(pend[d]) continue;
+      allDays[d] = rec; baseSnap[d] = JSON.stringify(rec);
+      if(d === currentDateKey) curReplaced = true;
+    }
+    // ล้างรหัสแปลกที่เคยปนเข้ามาในเครื่องจากรุ่นก่อน
+    Object.keys(allDays).forEach(k=>{
+      if(/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+      const info = parseServerDayKey(k);
+      if(info && !allDays[info.date]) allDays[info.date] = allDays[k];
+      delete allDays[k];
+    });
+    if(curReplaced){ switchToDate(currentDateKey); renderAllForCurrentDay(); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(allDays));
+
+    // ทะเบียนเชื้อ: รวมสองฝั่ง ไม่ใช้ทับ
+    try{
+      const r = await regPromise;
+      if(r && r.ok && r.data && Array.isArray(r.data.cases)){
+        const local = icAll();
+        const merged = mergeCases(r.data.cases, local, icPendingT() > 0);
+        if(JSON.stringify(merged) !== JSON.stringify(local)){
+          localStorage.setItem(IC_KEY, JSON.stringify(merged));
+          if(!curReplaced && typeof renderEventsRow === "function") renderEventsRow();
+        }
+        if(JSON.stringify(merged) !== JSON.stringify(r.data.cases) && !icPendingT())
+          localStorage.setItem(IC_PENDING_KEY, String(Date.now()));   // ในเครื่องมีเคสที่ส่วนกลางยังไม่มี
+      }
+    }catch(e){ /* ใช้ทะเบียนในเครื่องต่อไป */ }
+
+    setSync(`โหลดแล้ว ${n} วัน — ${new Date().toLocaleTimeString("th-TH")}`, "ok");
+    if(Object.keys(pendingAll()).length || icPendingT()) flushPending(true);
+  }catch(err){
+    setSync("⚠ โหลดจากส่วนกลางไม่สำเร็จ: " + (err.message || err) + " — ใช้ข้อมูลในเครื่องไปก่อน", "bad");
+    if(!silent) showPopup("โหลดข้อมูลจากส่วนกลางไม่สำเร็จ\n" + (err.message || err));
+  }
+}
+
+// ส่งหนึ่งวัน: อ่านฉบับล่าสุดจากส่วนกลาง -> รวมสามทาง -> ส่ง -> อ่านกลับยืนยัน
+async function pushDay(k){
+  const p = pendingAll()[k]; if(!p) return null;
+  const t = p.t;
+  if(k === currentDateKey) saveStore();
+  const snapStr = JSON.stringify(allDays[k] || emptyDay()), snap = JSON.parse(snapStr);
+  const srv = await getOne(CLOUD_KIND, cloudDayKey(k));
+  if(!srv.ok) throw new Error(srv.error);
+  const hasSrv = srv.data && srv.data.shifts;
+  const merged = (hasSrv && p.base) ? merge3(JSON.parse(p.base), snap, srv.data) : snap;
+  const mergedStr = JSON.stringify(merged);
+  const j = await postOne(CLOUD_KIND, cloudDayKey(k), await packIfLarge(merged));
+  const back = await getOne(CLOUD_KIND, cloudDayKey(k));
+  if(!back.ok || JSON.stringify(back.data) !== mergedStr) throw new Error("ส่งแล้วแต่อ่านกลับมาไม่ตรง");
+  // ใส่ผลรวมกลับในเครื่อง (ถ้าพิมพ์เพิ่มระหว่างส่ง วางของใหม่ทับผลรวมอีกที)
+  const cur = allDays[k] || snap, curStr = JSON.stringify(cur);
+  const next = curStr !== snapStr ? merge3(snap, cur, merged) : merged;
+  if(JSON.stringify(next) !== curStr){
+    allDays[k] = next;
+    if(k === currentDateKey){ switchToDate(k); renderAllForCurrentDay(); }
+  }
+  localStorage.setItem(STORE_KEY, JSON.stringify(allDays));
+  baseSnap[k] = mergedStr;
+  const p2 = pendingAll();
+  if(p2[k] && p2[k].t === t) delete p2[k];
+  else if(p2[k]) p2[k].base = mergedStr;
+  pendingSave(p2);
+  if(p.base) scheduleRecheck(k, { base: p.base, own: snapStr, saved: mergedStr });
+  return j.at;
+}
+/* สองเครื่องบันทึกวันเดียวกันในวินาทีเดียวกัน เครื่องหลังอาจทับเครื่องแรก:
+   ตรวจซ้ำหลังส่ง ถ้าการแก้ของเครื่องนี้หายไป วางกลับเข้าไปใหม่ (ไม่ทับของเครื่องอื่น) */
+const recheckJobs = {};
+function scheduleRecheck(k, job){
+  recheckJobs[k] = job;
+  setTimeout(()=> recheckDay(k), 4000);
+}
+async function recheckDay(k){
+  const job = recheckJobs[k]; if(!job) return;
+  delete recheckJobs[k];
+  try{
+    const srv = await getOne(CLOUD_KIND, cloudDayKey(k));
+    if(!srv.ok || !srv.data || !srv.data.shifts) return;
+    const srvStr = JSON.stringify(srv.data);
+    if(srvStr === job.saved) return;                                   // ไม่มีใครเขียนทับหลังเรา
+    const need = merge3(JSON.parse(job.base), JSON.parse(job.own), srv.data);
+    if(JSON.stringify(need) === srvStr) return;                        // การแก้ของเรายังอยู่ครบ
+    // หายไป: ให้เครื่องเห็น "ส่วนกลางตอนนี้ + การแก้ของเรา (+ที่พิมพ์เพิ่มหลังจากนั้น)" แล้วส่งใหม่ โดยนับเฉพาะส่วนต่างจากส่วนกลาง
+    const cur = allDays[k] || JSON.parse(job.own);
+    const localNext = merge3(JSON.parse(job.own), cur, need);
+    allDays[k] = localNext;
+    if(k === currentDateKey){ switchToDate(k); renderAllForCurrentDay(); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(allDays));
+    const p = pendingAll();
+    p[k] = { t: Date.now(), base: srvStr };
+    pendingSave(p);
+    flushPending(true);
+  }catch(e){}
+}
+async function pushRegistry(){
+  const t = icPendingT(); if(!t) return;
+  const srv = await getOne("ic", "registry");
+  if(!srv.ok) throw new Error(srv.error);
+  const local = icAll();
+  const merged = mergeCases(srv.data && Array.isArray(srv.data.cases) ? srv.data.cases : [], local, true);
+  const recStr = JSON.stringify({ cases: merged });
+  await postOne("ic", "registry", await packData({ cases: merged }));
+  const back = await getOne("ic", "registry");
+  if(!back.ok || JSON.stringify(back.data) !== recStr) throw new Error("ทะเบียนเชื้อส่งแล้วแต่อ่านกลับมาไม่ตรง");
+  if(JSON.stringify(merged) !== JSON.stringify(local)){
+    localStorage.setItem(IC_KEY, JSON.stringify(merged));
+    if(typeof renderEventsRow === "function") renderEventsRow();
+  }
+  if(icPendingT() === t) localStorage.removeItem(IC_PENDING_KEY);
+  setTimeout(recheckRegistry, 4000);
+}
+// ทะเบียนเชื้อ: ตรวจซ้ำว่าเคสของเครื่องนี้ยังอยู่ครบในส่วนกลาง ถ้าหาย ส่งรวมใหม่
+async function recheckRegistry(){
+  try{
+    const srv = await getOne("ic", "registry");
+    if(!srv.ok) return;
+    const srvCases = (srv.data && Array.isArray(srv.data.cases)) ? srv.data.cases : [];
+    const byId = new Map(srvCases.map(x=>[x.id, x]));
+    const lost = icAll().some(x=> x && x.id && (!byId.has(x.id) || (x.closed && !byId.get(x.id).closed)));
+    if(lost){ localStorage.setItem(IC_PENDING_KEY, String(Date.now())); flushPending(true); }
+  }catch(e){}
+}
+
+let cloudTimer = null, flushing = false, flushAgain = false;
+async function flushPending(silent){
+  if(!authed()) return;
+  if(flushing){ flushAgain = true; return; }
+  flushing = true; clearTimeout(cloudTimer);
+  let msg = "";
+  try{
+    for(const k of Object.keys(pendingAll()).sort()){
+      const at = await pushDay(k);
+      if(at) msg = `✓ บันทึกเรียบร้อย วันที่ ${thaiShortDate(k)} — ทุกเครื่องเห็นแล้ว (${at})`;
+    }
+    await pushRegistry();
+    setSync(msg || "✓ บันทึกเรียบร้อย — ทุกเครื่องเห็นแล้ว", "ok");
+  }catch(err){
+    setSync("⚠ ยังไม่ขึ้นส่วนกลาง: " + (err.message || err) + " — ข้อมูลเก็บในเครื่องแล้ว จะส่งให้อีกครั้งอัตโนมัติ", "bad");
+    if(!silent) showPopup("บันทึกขึ้นส่วนกลางไม่สำเร็จ\n" + (err.message || err));
+  }finally{
+    flushing = false;
+    if(flushAgain){ flushAgain = false; flushPending(true); }
+  }
+}
+// ชื่อเดิมยังใช้ได้
+function cloudSave(silent){ return flushPending(silent); }
+
+// แค่เลือกดู (เปลี่ยนวันที่ / หน้า Export / พรีวิว) ไม่ใช่การแก้ข้อมูล: ห้ามนับเป็นงานค้าง
+function isViewOnly(e){
+  const t = e && e.target;
+  if(!t || !t.closest) return false;
+  if(t.id === "rec-date") return true;
+  return !!t.closest("#export, #prev-overlay");
+}
+function scheduleCloudSave(e){
+  if(!currentDateKey || isViewOnly(e)) return;
+  if(!e || e.type !== "input") saveStore();          // การพิมพ์ถูกจดลงเครื่องอยู่แล้ว ที่เหลือจดตรงนี้
+  pendingMark(currentDateKey);
+  setSync("กำลังบันทึก… (อย่าเพิ่งปิดหน้า)", "busy");
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(()=> flushPending(true), 800);
+}
+document.addEventListener("input", scheduleCloudSave);
+document.addEventListener("change", scheduleCloudSave);
+// ปุ่ม Submit / Edit / เพิ่ม / ปิดเคส ฯลฯ แก้ข้อมูลด้วยการกด จึงต้องนับด้วย
+document.addEventListener("click", (e)=>{
+  // ใช้เส้นทางตอนกด (ปุ่มบางปุ่มสั่งวาดแผงใหม่ทันที ปุ่มเดิมจึงหลุดออกจากหน้าแล้วตอนมาถึงตรงนี้)
+  const path = e.composedPath ? e.composedPath() : [];
+  const isBtn = path.some(el=> el && el.tagName === "BUTTON");
+  const inPanel = path.some(el=> el && (el.id === "daily" || el.id === "proc" || el.id === "p4pd"));
+  const inPreview = path.some(el=> el && el.id === "prev-overlay");
+  if(isBtn && inPanel && !inPreview) scheduleCloudSave({ type:"click", target: document.body });
+});
+// ออกจากหน้า/สลับแอป: พยายามส่งงานค้างทันที (ถ้าไม่ทัน ยังอยู่ในเครื่อง และส่งให้ตอนเปิดครั้งหน้า)
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") flushPending(true); });
+window.addEventListener("pagehide", ()=> flushPending(true));
+/* ทุก 30 วินาที: มีงานค้าง -> ลองส่งอีกครั้ง (เน็ตหลุดแล้วกลับมา)
+   ไม่มีงานค้าง -> ดึงวันที่เปิดอยู่จากส่วนกลาง ให้เห็นสิ่งที่เครื่องอื่นเพิ่งบันทึก (ข้ามถ้ากำลังพิมพ์อยู่) */
+let REFRESH_MS = 30000;
+async function refreshCurrentDay(){
+  if(!authed() || flushing || !currentDateKey) return;
+  if(pendingAll()[currentDateKey]) return;
+  const a = document.activeElement;
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest && a.closest("#daily, #proc, #p4pd")) return;
+  try{
+    const k = currentDateKey;
+    const r = await getOne(CLOUD_KIND, cloudDayKey(k));
+    if(!r.ok || !r.data || !r.data.shifts) return;
+    const s = JSON.stringify(r.data);
+    if(s === baseSnap[k] || k !== currentDateKey || pendingAll()[k]) return;      // ไม่มีอะไรใหม่ หรือเริ่มแก้ระหว่างรอ
+    allDays[k] = r.data; baseSnap[k] = s;
+    switchToDate(k); renderAllForCurrentDay();
+    localStorage.setItem(STORE_KEY, JSON.stringify(allDays));
+  }catch(e){}
+}
+(function syncLoop(){
+  setTimeout(async ()=>{
+    try{
+      if(!flushing && (Object.keys(pendingAll()).length || icPendingT())) await flushPending(true);
+      else await refreshCurrentDay();
+    }finally{ syncLoop(); }
+  }, REFRESH_MS);
+})();
+
+// เปิดหน้า: ฉบับตั้งต้นของวันนี้ แล้วดึงข้อมูลจากส่วนกลาง
+if(currentDateKey && !pendingAll()[currentDateKey]) baseSnap[currentDateKey] = JSON.stringify(allDays[currentDateKey] || data);
+cloudLoad(true);
+
+// แตะป้ายสถานะสีแดง: ดูรายละเอียดเต็ม
+document.getElementById("sync-status").addEventListener("click", ()=>{
+  const el = document.getElementById("sync-status");
+  if(el.className === "bad" && el.title) showPopup(el.title);
+});
+
+// โหลดรายชื่อผู้ป่วยไว้ล่วงหน้า เพื่อให้กรองคนที่จำหน่ายแล้วออกได้ตั้งแต่ครั้งแรก
+loadRegistry().then(()=>{ if(typeof renderEventsRow === "function") renderEventsRow(); });
+
+/* ================= EXPORT FUNCTIONS ================= */
+
+/* ---- 1. แบบบันทึกเหตุการณ์_RCU ---- */
+
+/* ---- 2. หัตถการปีงบ ---- */
+/* ---- PDF export: 1 page = 1 date, all 3 shifts ---- */
+function staffStatusText(sh, D){
+  const s = getDeep(D.shifts[sh],'events.staffStatus') || STAFF_STATUS_OPTIONS[0];
+  if(s === STAFF_STATUS_OPTIONS[0]) return s;
+  const c = getDeep(D.shifts[sh],'events.staffCount') || "";
+  return `${s} ${c} ราย`.trim();
+}
+function generalText(sh, D){
+  const s = getDeep(D.shifts[sh],'events.general') || GENERAL_OPTIONS[0];
+  if(s !== GENERAL_OPTIONS[1]) return s;
+  const arr = getDeep(D.shifts[sh],'events.incidents');
+  if(!Array.isArray(arr) || !arr.length) return "พบอุบัติการณ์ (ยังไม่ระบุรายละเอียด)";
+  return arr.map((it,n)=>{
+    const where = [it.bed?`เตียง ${it.bed}`:"", it.hn?`HN ${it.hn}`:""].filter(Boolean).join(" ");
+    return `${n+1}) ${[it.group,it.item].filter(Boolean).join(" / ")}`
+      + (it.sev?` [ระดับ ${it.sev}]`:"")
+      + (where?` ${where}`:"")
+      + (it.detail?` — ${it.detail}`:"")
+      + (it.action?` | แก้ไข: ${it.action}`:"");
+  }).join("\n");
+}
+function ethicsText(sh, D){
+  const s = getDeep(D.shifts[sh],'events.ethics') || ETHICS_OPTIONS[0];
+  return s === ETHICS_OPTIONS[1] ? (getDeep(D.shifts[sh],'events.ethicsDetail') || "-") : s;
+}
+function germText(sh, D){
+  const s = getDeep(D.shifts[sh],'events.germStatus') || GERM_OPTIONS[0];
+  if(s === GERM_OPTIONS[0]) return s;
+  // ไล่จากรายการที่ติ๊กไว้ในเวรนั้น แล้วดึงชื่อเชื้อจากทะเบียน
+  const ticked = getDeep(D.shifts[sh], "events.germFollow") || {};
+  const all = icAll();
+  const lines = Object.keys(ticked).filter(id=>ticked[id]).map(id=>{
+    const x = all.find(c=>c.id === id);
+    if(!x) return null;
+    const org = icOrganismName(x);
+    const spec = icSpecimenName(x);
+    return `เตียง ${x.bed||"-"} ${x.name||""} — ${org}${spec?` / ${spec}`:""}`.trim();
+  }).filter(Boolean);
+  return lines.length ? `${s}\n${lines.map((l,i)=>`${i+1}) ${l}`).join("\n")}` : `${s} (-)`;
+}
+
+// builds the printable report for ANY day; used by both the on-screen viewer and the PDF export
+function buildDailyReportHtml(dateKey, dayRec){
+  const D = dayRec || allDays[dateKey] || emptyDay();
+  const [yy, mm, dd] = dateKey.split("-").map(Number);
+  const day = dd, month = mm, yearBE = yy + 543;
+  const g = (sh,p)=> getDeep(D.shifts[sh], p);
+  const rowsDef = [
+    ["บุคลากร",null],
+    ["RN (ปกติ/OT)", sh=>`${g(sh,'staff.RN.normal')||0}/${g(sh,'staff.RN.ot')||0}`],
+    ["NA (ปกติ/OT)", sh=>`${g(sh,'staff.NA.normal')||0}/${g(sh,'staff.NA.ot')||0}`],
+    ["W (ปกติ/OT)", sh=>`${g(sh,'staff.W.normal')||0}/${g(sh,'staff.W.ot')||0}`],
+    ["สถิติผู้ป่วย",null],
+    ["ยอดยกมา", sh=>g(sh,'census.carry')||"-"],
+    ["รับใหม่", sh=>g(sh,'census.newAdmit')||"-"],
+    ["รับย้าย", sh=>g(sh,'census.transferIn')||"-"],
+    ["จำหน่าย", sh=>g(sh,'census.discharge')||"-"],
+    ["ย้าย/ส่งต่อ", sh=>g(sh,'census.transferOut')||"-"],
+    ["ถึงแก่กรรม", sh=>g(sh,'census.dead')||"-"],
+    ["Refer", sh=>g(sh,'census.refer')||"-"],
+    ["เตรียมผ่าตัด/ตรวจ", sh=>g(sh,'census.prep')||"-"],
+    ["ผ่าตัด", sh=>g(sh,'census.surgery')||"-"],
+    ["คงพยาบาล", sh=>g(sh,'census.remain')||0],
+    ["ผป.ประเภท 5", sh=>g(sh,'ptype.p5')||"-"],
+    ["ผป.ประเภท 4", sh=>g(sh,'ptype.p4')||"-"],
+    ["ผป.ประเภท 3", sh=>g(sh,'ptype.p3')||"-"],
+    ["ผป.ประเภท 2", sh=>g(sh,'ptype.p2')||"-"],
+    ["Productivity", sh=>g(sh,'productivity')||"-"],
+    ["การพยาบาลพิเศษ",null],
+    ["แผลกดทับระดับ 2-4", sh=>g(sh,'pressureUlcer')||"-"],
+    ["Sedative/HAD/Thrombolytic/TPN", sh=>combineCareGroup(D.shifts[sh],"sedative",[["Sedative","Sedative"],["HAD","HAD"],["Thrombolytic","Thrombolytic"],["TPN","TPN"]]) || "-"],
+    ["C-LINE/A-LINE/IABP/End Tidal CO2", sh=>combineCareGroup(D.shifts[sh],"cvp",[["C-LINE","CVP"],["A-LINE","ALINE"],["IABP","IABP"],["End Tidal CO2","CO"]]) || "-"],
+    ["Ventilator/HFNC/Canula/Mask with bag", sh=>combineCareGroup(D.shifts[sh],"vent",[["Ventilator","Ventilator"],["HFNC","HFNC"],["Canula","Canula"],["Mask with bag","Mask"]]) || "-"],
+    ["VAP/CAUTI", sh=>combineCareGroup(D.shifts[sh],"vapCauti",[["VAP","VAP"],["CAUTI","CAUTI"]]) || "-"],
+    ["T-piece/Off ETT", sh=>combineCareGroup(D.shifts[sh],"tpiece",[["T-piece","Tpiece"],["Off ETT","OffETT"]]) || "-"],
+    ["สรุปเหตุการณ์ & ความเสี่ยง",null],
+    ["เจ้าหน้าที่", sh=>staffStatusText(sh, D)],
+    ["เหตุการณ์ทั่วไป", sh=>generalText(sh, D)],
+    ["ความเสี่ยงจริยธรรม", sh=>ethicsText(sh, D)],
+    ["เชื้อดื้อยา", sh=>germText(sh, D)],
+    ["Incharge", sh=>g(sh,'incharge')||"-"],
+    ["HN", ()=>HN_FIXED_NAME],
+  ];
+
+  let html = `<div class="report-title">แบบบันทึกข้อมูล หอผู้ป่วย RCU</div>
+    <div class="report-sub">วันที่ ${day} เดือน ${THAI_MONTHS_FULL[month]} พ.ศ. ${yearBE}</div>
+    <table class="report-table"><tr><th style="width:32%">ข้อมูล</th><th>ดึก</th><th>เช้า</th><th>บ่าย</th></tr>`;
+  rowsDef.forEach(([label, fn])=>{
+    if(fn === null){
+      html += `<tr class="rsection"><td colspan="4">${label}</td></tr>`;
+    } else {
+      html += `<tr><td class="rlabel">${label}</td>${SHIFTS.map(sh=>`<td class="rshift">${fn(sh)}</td>`).join("")}</tr>`;
+    }
+  });
+  html += `</table>`;
+  return html;
+}
+
+/* ---------------- on-screen viewer: same report, browse day by day ---------------- */
+// download the day's report as a PDF; the browser's download bar opens it
+
+// ย่อ "แผ่นรายงาน" ให้พอดีความกว้างจอ โดยคงเลย์เอาต์เท่าไฟล์ PDF
+let prevFit = true;      // true = ย่อพอดีจอ, false = ขนาดจริง
+function fitPreviewSheet(){
+  const body = document.getElementById("prev-body");
+  const sheet = body.querySelector(".prev-sheet");
+  if(!sheet) return;
+  const natural = sheet.dataset.w ? parseInt(sheet.dataset.w) : sheet.offsetWidth;
+  const availW = body.clientWidth  - 12;               // เว้นขอบซ้ายขวา
+  const availH = body.clientHeight - 12;               // เว้นขอบบนล่าง
+  if(availW <= 0 || availH <= 0) return;               // พรีวิวปิดอยู่ ไม่ต้องคำนวณ
+  const naturalH = sheet.offsetHeight;                 // ความสูงจริง (ไม่ถูกกระทบจาก transform)
+  const k = prevFit ? Math.max(0.12, Math.min(1, availW / natural, availH / naturalH)) : 1;
+  sheet.style.transform = `scale(${k})`;
+  sheet.style.transformOrigin = "top left";
+  // transform ไม่ลดพื้นที่ที่ใช้จริง จึงต้องกำหนดขนาดกล่องห่อให้ตรงกับที่ย่อแล้ว
+  const wrap = sheet.parentElement;
+  wrap.style.width  = (natural * k) + "px";
+  wrap.style.height = (naturalH * k) + "px";
+}
+window.addEventListener("resize", fitPreviewSheet);
+
+// แสดงตัวอย่างก่อน แล้วค่อยให้กดดาวน์โหลด
+document.getElementById("btn-view-daily").addEventListener("click", ()=>{
+  saveStore();
+  document.getElementById("prev-title").textContent =
+    "ตัวอย่าง — บันทึกประจำวัน " + currentDateKey;
+  document.getElementById("prev-body").innerHTML =
+    `<div class="prev-fit"><div class="prev-sheet" data-w="780">${buildDailyReportHtml(currentDateKey)}</div></div>`;
+  document.getElementById("prev-overlay").style.display = "flex";
+  prevFit = true;
+  document.getElementById("prev-zoom").textContent = "🔍 ขยาย";
+  fitPreviewSheet();
+});
+document.getElementById("prev-zoom").addEventListener("click", ()=>{
+  prevFit = !prevFit;
+  document.getElementById("prev-zoom").textContent = prevFit ? "🔍 ขยาย" : "↔ พอดีจอ";
+  fitPreviewSheet();
+});
+document.getElementById("prev-close").addEventListener("click", ()=>{
+  document.getElementById("prev-overlay").style.display = "none";
+});
+document.getElementById("prev-download").addEventListener("click", async ()=>{
+  const btn = document.getElementById("prev-download");
+  const orig = btn.textContent;
+  btn.textContent = "⏳ กำลังสร้าง PDF..."; btn.disabled = true;
+  try{
+    const pdf = await buildPdfDoc(currentDateKey);
+    pdf.save(`บันทึกเหตุการณ์รายวัน_${currentDateKey}.pdf`);
+  }catch(err){
+    showPopup(`สร้าง PDF ไม่สำเร็จ:\n${err.message || err}`);
+  }finally{
+    btn.textContent = orig; btn.disabled = false;
+  }
+});
+
+async function buildPdfDoc(key){
+  if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined"){
+    throw new Error("โหลดตัวช่วยสร้าง PDF ไม่สำเร็จ — ต้องมีอินเทอร์เน็ต และเปิดไฟล์นี้ผ่าน Chrome โดยตรง (ไม่ใช่ตัวดูไฟล์ในแอปดาวน์โหลด)");
+  }
+  const container = document.getElementById("pdf-report-container");
+  try{
+    container.innerHTML = buildDailyReportHtml(key);
+    container.style.cssText = "display:block;position:fixed;left:0;top:0;z-index:-1;background:#fff;width:780px;padding:20px;";
+    await new Promise(r=>setTimeout(r, 60));
+    const canvas = await html2canvas(container, { scale:2, backgroundColor:"#ffffff" });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("portrait", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    const imgData = canvas.toDataURL("image/png");
+
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    return pdf;
+  } finally {
+    container.style.cssText = "display:none;";
+  }
+}
+
+/* ---- หัตถการ: monthly export across a month range, 1 sheet per month + summary ---- */
+const THIN = {style:"thin", color:{rgb:"999999"}};
+const BORDER_ALL = {top:THIN,bottom:THIN,left:THIN,right:THIN};
+function styleCell(ws, addr, opts){
+  if(!ws[addr]) ws[addr] = {v:"", t:"s"};
+  ws[addr].s = Object.assign({border:BORDER_ALL, alignment:{vertical:"center", wrapText:true}}, opts||{});
+}
+
+function daysInMonth(year, month1){ return new Date(year, month1, 0).getDate(); }
+
+function buildHattakanMonthSheet(year, month1, onlyDay){
+  // rows: header, then each procedure (grouped), with a per-day column set and a month total
+  // onlyDay: when given, the sheet covers just that one date instead of the whole month
+  const dayFrom = onlyDay || 1;
+  const dayTo   = onlyDay || daysInMonth(year, month1);
+  const nDays   = dayTo - dayFrom + 1;
+  const flatItems = [];
+  PROC_GROUPS.forEach(g=>{
+    flatItems.push({group:true, label:g.title});
+    g.items.forEach(([key,label,unit])=> flatItems.push({group:false, key, label, unit}));
+  });
+
+  const aoa = [];
+  const title = onlyDay
+    ? `สรุปหัตถการ — วันที่ ${onlyDay} ${THAI_MONTHS_FULL[month1]} ${year+543}`
+    : `สรุปหัตถการ — ${THAI_MONTHS_FULL[month1]} ${year+543}`;
+  aoa.push([title]);
+  aoa.push([]);
+  // two header rows: day number spanning 3 shift columns, then ด/ช/บ under each
+  const headDays = ["ภาระงาน","หน่วย"];
+  const headShifts = ["",""];
+  for(let d=dayFrom; d<=dayTo; d++){
+    headDays.push(String(d), "", "");
+    headShifts.push("ด","ช","บ");
+  }
+  headDays.push(onlyDay ? "รวมวัน" : "รวมเดือน");
+  headShifts.push("");
+  aoa.push(headDays);
+  aoa.push(headShifts);
+
+  const monthTotals = {};
+  flatItems.forEach(item=>{
+    if(item.group){
+      aoa.push([item.label]);
+      return;
+    }
+    const row = [item.label, item.unit];
+    let total = 0;
+    for(let d=dayFrom; d<=dayTo; d++){
+      const key = `${year}-${String(month1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const dayRec = allDays[key];
+      SHIFTS.forEach(sh=>{
+        let v = dayRec ? parseFloat(getDeep(dayRec.shifts[sh], `proc.${item.key}`)) : NaN;
+        if(isNaN(v)) v = 0;
+        row.push(v || "");
+        total += v;
+      });
+    }
+    row.push(total || "");
+    monthTotals[item.key] = total;
+    aoa.push(row);
+  });
+
+  const lastCol = 2 + nDays*3; // 0-indexed column of the "รวมเดือน" cell
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{wch:42},{wch:7}].concat(Array(nDays*3).fill({wch:3.5}), [{wch:10}]);
+  ws["!freeze"] = {xSplit:2, ySplit:4};
+  const merges = [{s:{r:0,c:0}, e:{r:0,c:lastCol}}];
+  for(let d=0; d<nDays; d++){
+    const c = 2 + d*3;
+    merges.push({s:{r:2,c}, e:{r:2,c:c+2}});           // day number spans its 3 shift columns
+  }
+  merges.push({s:{r:2,c:0}, e:{r:3,c:0}});             // ภาระงาน spans both header rows
+  merges.push({s:{r:2,c:1}, e:{r:3,c:1}});             // หน่วย
+  merges.push({s:{r:2,c:lastCol}, e:{r:3,c:lastCol}}); // รวมเดือน
+  ws["!merges"] = merges;
+
+  // styling: title, header row, group rows, total column
+  styleCell(ws, "A1", {font:{bold:true, sz:14, color:{rgb:"0D3B8C"}}, alignment:{horizontal:"center"}});
+  // two header rows (rows 2 and 3 zero-indexed)
+  for(let c=0; c<=lastCol; c++){
+    [2,3].forEach(hr=>{
+      styleCell(ws, XLSX.utils.encode_cell({r:hr, c}),
+        {font:{bold:true, color:{rgb:"0D3B8C"}}, fill:{fgColor:{rgb:"E8F0FD"}}, alignment:{horizontal:"center", vertical:"center"}});
+    });
+  }
+  let r = 4; // 0-indexed row of first data line
+  flatItems.forEach(item=>{
+    if(item.group){
+      for(let c=0; c<=lastCol; c++){
+        styleCell(ws, XLSX.utils.encode_cell({r, c}),
+          {font:{bold:true, color:{rgb:"082A66"}}, fill:{fgColor:{rgb:"DDE6F7"}}});
+      }
+    } else {
+      styleCell(ws, XLSX.utils.encode_cell({r, c:0}), {alignment:{horizontal:"left", wrapText:true}});
+      styleCell(ws, XLSX.utils.encode_cell({r, c:1}), {alignment:{horizontal:"center"}});
+      for(let d=0; d<nDays; d++){
+        // shade alternate days so the 3-shift blocks stay visually separated
+        const dayFill = (d % 2 === 1) ? {fill:{fgColor:{rgb:"F7F9FD"}}} : {};
+        for(let s=0; s<3; s++){
+          styleCell(ws, XLSX.utils.encode_cell({r, c:2 + d*3 + s}),
+            Object.assign({alignment:{horizontal:"center"}}, dayFill));
+        }
+      }
+      styleCell(ws, XLSX.utils.encode_cell({r, c:lastCol}),
+        {font:{bold:true}, fill:{fgColor:{rgb:"FFF4E0"}}, alignment:{horizontal:"center"}});
+    }
+    r++;
+  });
+
+  return { ws, monthTotals };
+}
+
+function buildP4pMonthSheet(year, month1, onlyDay){
+  const dayFrom = onlyDay || 1;
+  const dayTo   = onlyDay || daysInMonth(year, month1);
+  const nDays   = dayTo - dayFrom + 1;
+
+  // same row order as the real form: service items, then Diagnosis
+  const items = [];
+  items.push({group:true, label:"ภาระงานบริการ"});
+  P4PD_ROWS.forEach(([label,path,mode])=> items.push({group:false, label, path, mode}));
+  items.push({group:true, label:"Diagnosis"});
+  DIAG_LIST.forEach((d,i)=>{
+    const depth = d.startsWith("——") ? 2 : (d.startsWith("—") ? 1 : 0);
+    items.push({group:false, label:" ".repeat(depth*4) + d.replace(/^—+\s*/,""), path:`diag.d${i}`, mode:"edit"});
+  });
+
+  const aoa = [];
+  aoa.push([onlyDay
+    ? `ใบลงยอด P4P รายวัน — วันที่ ${onlyDay} ${THAI_MONTHS_FULL[month1]} ${year+543}`
+    : `ใบลงยอด P4P รายวัน — ${THAI_MONTHS_FULL[month1]} ${year+543}`]);
+  aoa.push([]);
+  const headDays = ["ภาระงานบริการ"], headShifts = [""];
+  for(let d=dayFrom; d<=dayTo; d++){ headDays.push(String(d),"",""); headShifts.push("ด","ช","บ"); }
+  headDays.push(onlyDay ? "รวมวัน" : "รวมเดือน"); headShifts.push("");
+  aoa.push(headDays); aoa.push(headShifts);
+
+  items.forEach(item=>{
+    if(item.group){ aoa.push([item.label]); return; }
+    const row = [item.label];
+    let total = 0;
+    for(let d=dayFrom; d<=dayTo; d++){
+      const key = `${year}-${String(month1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const rec = allDays[key];
+      SHIFTS.forEach(sh=>{
+        let v = 0;
+        if(rec){
+          if(item.mode === "rntn"){
+            const n = p=>{ const x=parseFloat(getDeep(rec.shifts[sh],p)); return isNaN(x)?0:x; };
+            v = n("staff.RN.normal")+n("staff.RN.ot")+n("staff.NA.normal")+n("staff.NA.ot");
+          } else {
+            const x = parseFloat(getDeep(rec.shifts[sh], item.path));
+            v = isNaN(x) ? 0 : x;
+          }
+        }
+        row.push(v || "");
+        total += v;
+      });
+    }
+    row.push(total || "");
+    aoa.push(row);
+  });
+
+  // ---- month-end summary block (mirrors the real form's calculated rows) ----
+  const sum = path=>{
+    let t = 0;
+    for(let d=dayFrom; d<=dayTo; d++){
+      const k = `${year}-${String(month1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const rec = allDays[k];
+      if(!rec) continue;
+      SHIFTS.forEach(sh=>{ const x = parseFloat(getDeep(rec.shifts[sh], path)); if(!isNaN(x)) t += x; });
+    }
+    return t;
+  };
+  // carry-forward is a running balance, so take it from the first shift of the first recorded day
+  let carryStart = 0;
+  for(let d=dayFrom; d<=dayTo; d++){
+    const k = `${year}-${String(month1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if(allDays[k]){ const v = parseFloat(getDeep(allDays[k].shifts["ดึก"], "census.carry")); if(!isNaN(v)) carryStart = v; break; }
+  }
+  const bedDays     = sum("p4pd.bedDays");
+  const totalAdmit  = sum("census.newAdmit") + sum("census.transferIn");
+  const totalOut    = sum("census.discharge") + sum("census.transferOut") + sum("census.refer") + sum("census.dead");
+  const deaths      = sum("census.dead");
+  const remain      = carryStart + totalAdmit - totalOut;
+  const totalPts    = carryStart + totalAdmit;
+  const BEDS = 8;
+  const r2 = v => Math.round(v*100)/100;
+
+  aoa.push([]);
+  aoa.push(["สรุปประจำเดือน"]);
+  const summaryRows = [
+    ["จำนวนวันนอนทั้งหมด", bedDays],
+    ["จำนวนผู้ป่วยทั้งหมด", totalPts],
+    ["ยอดยกมา", carryStart],
+    ["รวมรับทั้งหมด", totalAdmit],
+    ["รวมจำหน่ายทั้งหมด", totalOut],
+    ["คงพยาบาล", remain],
+    ["อัตราตาย (%)", totalPts ? r2(deaths*100/totalPts) : 0],
+    ["อัตราครองเตียง (%)", nDays ? r2(bedDays*100/(BEDS*nDays)) : 0],
+    ["จำนวนผู้ป่วยเฉลี่ยต่อวัน", nDays ? r2(bedDays/nDays) : 0],
+    ["เฉลี่ยรับใหม่ต่อวัน", nDays ? r2(sum("census.newAdmit")/nDays) : 0],
+    ["เฉลี่ยรับย้ายต่อวัน", nDays ? r2(sum("census.transferIn")/nDays) : 0],
+  ];
+  // monthly totals per movement type, shown beside the summary (cols D-E)
+  const moveRows = [
+    ["รับใหม่", sum("census.newAdmit")],
+    ["รับย้าย", sum("census.transferIn")],
+    ["ย้าย", sum("census.transferOut")],
+    ["จำหน่าย", sum("census.discharge")],
+    ["ไม่สมัครใจอยู่", sum("p4pd.notVoluntary")],
+    ["Refer", sum("census.refer")],
+    ["ถึงแก่กรรม", deaths],
+  ];
+  const summaryStartRow = aoa.length; // 0-indexed row of the first summary line
+  summaryRows.forEach(([label,val],i)=>{
+    const mv = moveRows[i];
+    const row = [label, val, "", "", ""];      // value merged across cols B-D
+    if(mv) row.push(mv[0], "", "", mv[1]);     // label merged F-H, value merged I-K
+    aoa.push(row);
+  });
+
+  const lastCol = 1 + nDays*3;
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{wch:40}].concat(Array(nDays*3).fill({wch:3.5}), [{wch:12}]);
+  ws["!freeze"] = {xSplit:1, ySplit:4};
+  const merges = [{s:{r:0,c:0}, e:{r:0,c:lastCol}}];
+  for(let d=0; d<nDays; d++){ const col = 1 + d*3; merges.push({s:{r:2,c:col}, e:{r:2,c:col+2}}); }
+  merges.push({s:{r:2,c:0}, e:{r:3,c:0}});
+  merges.push({s:{r:2,c:lastCol}, e:{r:3,c:lastCol}});
+  ws["!merges"] = merges;
+
+  styleCell(ws, "A1", {font:{bold:true, sz:14, color:{rgb:"0D3B8C"}}, alignment:{horizontal:"center"}});
+  for(let col=0; col<=lastCol; col++){
+    [2,3].forEach(hr=> styleCell(ws, XLSX.utils.encode_cell({r:hr, c:col}),
+      {font:{bold:true, color:{rgb:"0D3B8C"}}, fill:{fgColor:{rgb:"E8F0FD"}}, alignment:{horizontal:"center", vertical:"center"}}));
+  }
+  let r = 4;
+  items.forEach(item=>{
+    if(item.group){
+      for(let col=0; col<=lastCol; col++) styleCell(ws, XLSX.utils.encode_cell({r, c:col}),
+        {font:{bold:true, color:{rgb:"082A66"}}, fill:{fgColor:{rgb:"DDE6F7"}}});
+    } else {
+      styleCell(ws, XLSX.utils.encode_cell({r, c:0}), {alignment:{horizontal:"left", wrapText:true}});
+      for(let d=0; d<nDays; d++){
+        const shade = (d % 2 === 1) ? {fill:{fgColor:{rgb:"F7F9FD"}}} : {};
+        for(let s=0; s<3; s++) styleCell(ws, XLSX.utils.encode_cell({r, c:1 + d*3 + s}),
+          Object.assign({alignment:{horizontal:"center"}}, shade));
+      }
+      styleCell(ws, XLSX.utils.encode_cell({r, c:lastCol}),
+        {font:{bold:true}, fill:{fgColor:{rgb:"FFF4E0"}}, alignment:{horizontal:"center"}});
+    }
+    r++;
+  });
+
+  // summary header + rows
+  styleCell(ws, XLSX.utils.encode_cell({r:summaryStartRow-1, c:0}),
+    {font:{bold:true, sz:12, color:{rgb:"082A66"}}, fill:{fgColor:{rgb:"DDE6F7"}}});
+  styleCell(ws, XLSX.utils.encode_cell({r:summaryStartRow-1, c:1}),
+    {font:{bold:true}, fill:{fgColor:{rgb:"DDE6F7"}}});
+  summaryRows.forEach((_,i)=>{
+    const rr = summaryStartRow + i;
+    const isRate = summaryRows[i][0].includes("อัตรา");
+    styleCell(ws, XLSX.utils.encode_cell({r:rr, c:0}),
+      {font:{bold:isRate}, alignment:{horizontal:"left"}});
+    styleCell(ws, XLSX.utils.encode_cell({r:rr, c:1}),
+      {font:{bold:true, color:{rgb: isRate ? "B9432F" : "000000"}},
+       fill:{fgColor:{rgb: isRate ? "FDECEA" : "FFF4E0"}}, alignment:{horizontal:"center"}});
+  });
+  // widen the summary + movement cells by merging across the narrow day columns
+  const hdrRow = summaryStartRow - 1;
+  ws["!merges"].push({s:{r:hdrRow,c:0}, e:{r:hdrRow,c:3}});
+  ws["!merges"].push({s:{r:hdrRow,c:5}, e:{r:hdrRow,c:10}});
+  summaryRows.forEach((_,i)=>{
+    const rr = summaryStartRow + i;
+    ws["!merges"].push({s:{r:rr,c:1}, e:{r:rr,c:3}});
+    if(moveRows[i]){
+      ws["!merges"].push({s:{r:rr,c:5}, e:{r:rr,c:7}});
+      ws["!merges"].push({s:{r:rr,c:8}, e:{r:rr,c:10}});
+    }
+  });
+  // movement-total block beside the summary
+  styleCell(ws, XLSX.utils.encode_cell({r:hdrRow, c:5}),
+    {font:{bold:true, color:{rgb:"B9432F"}}, fill:{fgColor:{rgb:"FDECEA"}}, alignment:{horizontal:"center"}});
+  ws[XLSX.utils.encode_cell({r:hdrRow, c:5})].v = "รวมทั้งเดือน";
+  moveRows.forEach((_,i)=>{
+    const rr = summaryStartRow + i;
+    styleCell(ws, XLSX.utils.encode_cell({r:rr, c:5}), {alignment:{horizontal:"left"}, fill:{fgColor:{rgb:"FDE9F0"}}});
+    styleCell(ws, XLSX.utils.encode_cell({r:rr, c:8}), {font:{bold:true}, alignment:{horizontal:"center"}, fill:{fgColor:{rgb:"FFF4E0"}}});
+  });
+
+  return ws;
+}
+
+function buildHattakanSummarySheet(monthList, totalsByMonth){
+  const aoa = [];
+  aoa.push([`สรุปยอดรวมหัตถการ — ${monthList.length} เดือน`]);
+  aoa.push([]);
+  const head = ["ภาระงาน","หน่วย"];
+  monthList.forEach(m=> head.push(`${THAI_MONTHS[m.month1]}${String(m.year+543).slice(-2)}`));
+  head.push("รวมทั้งหมด");
+  aoa.push(head);
+
+  const flatItems = [];
+  PROC_GROUPS.forEach(g=>{
+    flatItems.push({group:true, label:g.title});
+    g.items.forEach(([key,label,unit])=> flatItems.push({group:false, key, label, unit}));
+  });
+
+  flatItems.forEach(item=>{
+    if(item.group){ aoa.push([item.label]); return; }
+    const row = [item.label, item.unit];
+    let grand = 0;
+    monthList.forEach(m=>{
+      const v = (totalsByMonth[`${m.year}-${m.month1}`] || {})[item.key] || 0;
+      row.push(v || "");
+      grand += v;
+    });
+    row.push(grand || "");
+    aoa.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const nCols = monthList.length + 2;
+  ws["!cols"] = [{wch:42},{wch:7}].concat(Array(monthList.length).fill({wch:10}), [{wch:12}]);
+  ws["!freeze"] = {xSplit:2, ySplit:3};
+  ws["!merges"] = [{s:{r:0,c:0}, e:{r:0,c:nCols}}];
+
+  styleCell(ws, "A1", {font:{bold:true, sz:14, color:{rgb:"0D3B8C"}}, alignment:{horizontal:"center"}});
+  for(let c=0; c<=nCols; c++){
+    styleCell(ws, XLSX.utils.encode_cell({r:2, c}),
+      {font:{bold:true, color:{rgb:"0D3B8C"}}, fill:{fgColor:{rgb:"E8F0FD"}}, alignment:{horizontal:"center"}});
+  }
+  let r = 3;
+  flatItems.forEach(item=>{
+    if(item.group){
+      for(let c=0; c<=nCols; c++){
+        styleCell(ws, XLSX.utils.encode_cell({r, c}),
+          {font:{bold:true, color:{rgb:"082A66"}}, fill:{fgColor:{rgb:"DDE6F7"}}});
+      }
+    } else {
+      styleCell(ws, XLSX.utils.encode_cell({r, c:0}), {alignment:{horizontal:"left", wrapText:true}});
+      styleCell(ws, XLSX.utils.encode_cell({r, c:1}), {alignment:{horizontal:"center"}});
+      for(let c=2; c<nCols; c++) styleCell(ws, XLSX.utils.encode_cell({r, c}), {alignment:{horizontal:"center"}});
+      styleCell(ws, XLSX.utils.encode_cell({r, c:nCols}),
+        {font:{bold:true}, fill:{fgColor:{rgb:"FFF4E0"}}, alignment:{horizontal:"center"}});
+    }
+    r++;
+  });
+  return ws;
+}
+
+/* ---------------- export mode: รายวัน vs รายเดือน ---------------- */
+let exportMode = "day";
+document.querySelectorAll(".exp-mode-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".exp-mode-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    exportMode = btn.dataset.mode;
+    document.getElementById("exp-day-row").style.display   = exportMode==="day"   ? "flex" : "none";
+    document.getElementById("exp-month-row").style.display = exportMode==="month" ? "flex" : "none";
+  });
+});
+// the chosen months, validated; null if the inputs are bad
+function getSelectedMonths(){
+  const fromVal = document.getElementById("mr-from").value;
+  const toVal = document.getElementById("mr-to").value;
+  if(!fromVal || !toVal){ showPopup("กรุณาเลือกเดือนเริ่มต้นและเดือนสิ้นสุดก่อน Export"); return null; }
+  const [fy, fm] = fromVal.split("-").map(Number);
+  const [ty, tm] = toVal.split("-").map(Number);
+  if(fy*12+fm > ty*12+tm){ showPopup("เดือนเริ่มต้นต้องมาก่อนเดือนสิ้นสุด"); return null; }
+  const list = [];
+  let y = fy, m = fm;
+  while(y*12+m <= ty*12+tm){
+    list.push({year:y, month1:m});
+    m++; if(m > 12){ m = 1; y++; }
+    if(list.length > 36){ showPopup("เลือกช่วงได้ไม่เกิน 36 เดือน"); return null; }
+  }
+  return { list, fromVal, toVal };
+}
+function getSelectedDate(){ return document.getElementById("exp-date").value || currentDateKey; }
+
+/* ---------------- หัตถการ ---------------- */
+function exportHattakanMonths(){
+  saveStore();
+  const sel = getSelectedMonths();
+  if(!sel) return;
+  const wb = XLSX.utils.book_new();
+  const totalsByMonth = {};
+  sel.list.forEach(mo=>{
+    const { ws, monthTotals } = buildHattakanMonthSheet(mo.year, mo.month1);
+    totalsByMonth[`${mo.year}-${mo.month1}`] = monthTotals;
+    XLSX.utils.book_append_sheet(wb, ws, `${THAI_MONTHS[mo.month1]}${String(mo.year+543).slice(-2)}`);
+  });
+  XLSX.utils.book_append_sheet(wb, buildHattakanSummarySheet(sel.list, totalsByMonth), "สรุปรวม");
+  wb.SheetNames.unshift(wb.SheetNames.pop()); // summary first
+  XLSX.writeFile(wb, `หัตถการ_${sel.fromVal}_ถึง_${sel.toVal}.xlsx`);
+}
+function exportHattakanDay(){
+  saveStore();
+  const key = getSelectedDate();
+  const [y,m,d] = key.split("-").map(Number);
+  const { ws } = buildHattakanMonthSheet(y, m, d);   // same styled sheet, single day only
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `${THAI_MONTHS[m]}${String(y+543).slice(-2)}`);
+  XLSX.writeFile(wb, `หัตถการ_${key}.xlsx`);
+}
+
+/* ---------------- p4p รายวัน ---------------- */
+function exportP4pMonths(){
+  saveStore();
+  const sel = getSelectedMonths();
+  if(!sel) return;
+  const wb = XLSX.utils.book_new();
+  sel.list.forEach(mo=>{
+    XLSX.utils.book_append_sheet(wb, buildP4pMonthSheet(mo.year, mo.month1),
+      `${THAI_MONTHS[mo.month1]}${String(mo.year+543).slice(-2)}`);
+  });
+  XLSX.writeFile(wb, `p4pรายวัน_${sel.fromVal}_ถึง_${sel.toVal}.xlsx`);
+}
+function exportP4pDay(){
+  saveStore();
+  const key = getSelectedDate();
+  const [y,m,d] = key.split("-").map(Number);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, buildP4pMonthSheet(y, m, d),
+    `${THAI_MONTHS[m]}${String(y+543).slice(-2)}`);
+  XLSX.writeFile(wb, `p4pรายวัน_${key}.xlsx`);
+}
+
+/* ---------------- PDF ---------------- */
+async function exportPdfRange(){
+  const btn = document.getElementById("btn-export-pdf");
+  const labelSpan = btn.querySelector("span:last-child");
+  const original = labelSpan.innerHTML;
+  btn.disabled = true;
+  saveStore();
+  try{
+    if(exportMode === "day"){
+      labelSpan.innerHTML = "⏳ กำลังสร้าง PDF...";
+      const key = getSelectedDate();
+      const pdf = await buildPdfDoc(key);
+      pdf.save(`บันทึกเหตุการณ์รายวัน_${key}.pdf`);
+      return;
+    }
+    const sel = getSelectedMonths();
+    if(!sel) return;
+    // every recorded day inside the chosen months, one page each
+    const keys = Object.keys(allDays).filter(k=>{
+      const [y,m] = k.split("-").map(Number);
+      return sel.list.some(mo=> mo.year===y && mo.month1===m);
+    }).sort();
+    if(!keys.length){ showPopup("ไม่พบข้อมูลที่บันทึกไว้ในช่วงเดือนที่เลือก"); return; }
+
+    let merged = null;
+    for(let i=0; i<keys.length; i++){
+      labelSpan.innerHTML = `⏳ กำลังสร้าง PDF... (${i+1}/${keys.length})`;
+      const pdf = await buildPdfDoc(keys[i]);
+      if(!merged){ merged = pdf; }
+      else {
+        // append this day's pages onto the growing document
+        const pages = pdf.internal.pages;
+        for(let p=1; p<pages.length; p++){
+          merged.addPage();
+          merged.internal.pages[merged.internal.pages.length-1] = pages[p];
+        }
+      }
+    }
+    merged.save(`บันทึกเหตุการณ์_${sel.fromVal}_ถึง_${sel.toVal}.pdf`);
+  }catch(err){
+    showPopup(`สร้าง PDF ไม่สำเร็จ:\n${err.message || err}`);
+  }finally{
+    labelSpan.innerHTML = original;
+    btn.disabled = false;
+  }
+}
+
+const RM_TPL = [{"n": "", "l": "รายงานอุบัติการณ์ เดือน ตุลาคม  2569  กลุ่มภารกิจด้านการพยาบาลปี  2569"}, {"n": "ลำดับ", "l": "รายการความเสี่ยง"}, {"n": "", "l": ""}, {"n": "", "l": "วันนอนรวม "}, {"n": "", "l": "Vent Day"}, {"n": "", "l": "VAP"}, {"n": "", "l": "CATH Day"}, {"n": "", "l": "CAUTI "}, {"n": "", "l": "Central line Day"}, {"n": "", "l": "BSI "}, {"n": "", "l": "Bed sore Day"}, {"n": "", "l": "Bed sore"}, {"n": "", "l": "จำนวนผป  on ETT"}, {"n": "", "l": ""}, {"n": "", "l": ""}, {"n": "", "l": ""}, {"n": "", "l": "ด้าน  Clinic"}, {"n": 1, "l": "การให้เลือดปลอดภัย "}, {"n": "", "l": " 1.1  เตรียมผิดคน"}, {"n": "", "l": " 1.2  เจาะเลือดผิดคน"}, {"n": "", "l": " 1.3 ให้เลือดผิดคน "}, {"n": "", "l": " 1.4  ผิดชนิด"}, {"n": "", "l": " 1.5  ผิดขนาด"}, {"n": "", "l": " 1.6 อื่นๆ"}, {"n": 2, "l": "การผ่าตัดปลอดภัย "}, {"n": "", "l": "2.1 มีสิ่งตกค้างภายในร่างกายผู้ป่วย"}, {"n": "", "l": "2.2 set ผ่าตัด ผิดคน ผิดข้าง"}, {"n": "", "l": "2.3 งดเลื่อนผ่าตัดจากพยาบาล"}, {"n": "", "l": "2.4 เตรียมผ่าตัดไม่พร้อม"}, {"n": "", "l": "  .-  ไม่ได้ เซ็นใบยินยอม"}, {"n": "", "l": "  .-  ไม่ได้ NPO"}, {"n": "", "l": " .-  ไม่ได้ถอดฟันปลอม /ของมีค่า/ลบเล็บ"}, {"n": "", "l": "2.5 ส่งอุปกรณ์ไปORไม่ถูกต้อง"}, {"n": 3, "l": "ระบุตัวผู้ป่วย"}, {"n": "", "l": "3.1 ติดสติ๊กเกอร์ผิด"}, {"n": "", "l": "3.2 ส่งตรวจผิดคน/ส่งผ่าตัด"}, {"n": "", "l": "3.3 ส่ง Lab ผิดคน"}, {"n": "", "l": "3.4 ติด Lab ผิดคน"}, {"n": "", "l": "3.5ไม่ติดป้ายข้อมือ"}, {"n": "", "l": "3.6 เอ็กซเรย์ผิดคน"}, {"n": "", "l": "3.7 ป้ายข้อมือผิดคน"}, {"n": "", "l": "3.8 เรียกตรวจผิดคน/สมุดชมพู"}, {"n": "", "l": "3.9 ทำหัตถการผิดคน/set ORผิดข้าง"}, {"n": "", "l": "3.10 เจาะlab ผิดคน"}, {"n": "", "l": "3.11 ระบุเพศผิด"}, {"n": 4, "l": "มารดา/ทารกเสียชีวิต"}, {"n": "", "l": "4.1มารดาเสียชีวิตขณะดูแล"}, {"n": "", "l": "4.2ทารก Arrest ขณะอยู่กับมารดา"}, {"n": 5, "l": "ผู้ป่วยฆ่าตัวตายในโรงพยาบาล"}, {"n": 6, "l": "ET Tubeเลื่อน/หลุด/ดึงTube"}, {"n": "", "l": "ventday"}, {"n": "", "l": "6.1 ET- tubeเลื่อน/หลุด"}, {"n": "", "l": "6.2 ดึงTube"}, {"n": 7, "l": "พลัดตกหกล้ม/เป็นลม/ลื่น"}, {"n": "", "l": "7.1 พลัดตกหกล้ม/ลื่นหกล้ม"}, {"n": "", "l": "7.2 เป็นลม"}, {"n": "", "l": "7.3 ตกเตียง "}, {"n": "", "l": "7.4 ตกเก้าอี้"}, {"n": "", "l": "7.5 ตกเปล"}, {"n": 8, "l": "Admin Error"}, {"n": "", "l": "8.1 HAD (ระบุชื่อยา)"}, {"n": "", "l": "8.2 ระดับ D"}, {"n": "", "l": "8.3 ระดับ E ขึ้นไป (ต้องมีรายละเอียด)"}, {"n": 9, "l": "ผู้ป่วยมีภาวะArrest โดยไม่คาดคิด"}, {"n": "", "l": "9.1 ขณะรอตรวจ"}, {"n": "", "l": "9.2 ขณะส่งตรวจ/ทำหัตถการ"}, {"n": "", "l": "9.3 ขณะดูแล"}, {"n": 10, "l": "ย้าย ICU โดยไม่ได้วางแผน"}, {"n": 11, "l": "ทารก Arrest ขณะอยู่กับมารดา"}, {"n": 12, "l": "admitted ผิด ward"}, {"n": 13, "l": "เกิดแผลกดทับ(วันนอน)"}, {"n": "", "l": "13.1 ICU"}, {"n": "", "l": "13.2 Ward"}, {"n": 14, "l": "ดึง/เลื่อนหลุด (NG,Cath,Drain,Device)"}, {"n": "", "l": "16.1 C line"}, {"n": "", "l": "16.2 Foley cath"}, {"n": "", "l": "16.3 Drain"}, {"n": "", "l": "16.4 Cutdown"}, {"n": 15, "l": "Pheblitis/Extravasation"}, {"n": 16, "l": "บาดเจ็บจากการถูกรัดตรึง"}, {"n": 17, "l": "แพ้ยาซ้ำ"}, {"n": 18, "l": "ผู้ป่วยหนีกลับ"}, {"n": 19, "l": "การสื่อสาร"}, {"n": 20, "l": "เจ้าหน้าที่บาดเจ็บ"}, {"n": "", "l": "20.1 ถูกเข็มทิ่มตำ"}, {"n": "", "l": "20.2 ถูกของมีคมตำ/บาด"}, {"n": "", "l": "20.3 สารคัดหลั่งกระเด็นเข้าตา/ปาก"}, {"n": 21, "l": "เจ้าหน้าที่ถูกทำร้าย"}, {"n": 22, "l": "Training Risk"}, {"n": "", "l": "22.1 นศ.แพทย์"}, {"n": "", "l": "22.2 นศ.พยาบาล"}, {"n": "", "l": "22.3 RN ใหม่"}, {"n": 23, "l": "ข้อร้องเรียน"}, {"n": "", "l": "23.1พฤติกรรมบริการ"}, {"n": "", "l": "23.2ละเมิดสิทธิ์ผู้รับบริการ"}, {"n": "", "l": "ด้าน Non Clinic"}, {"n": 24, "l": "น้ำยา/อุปกรณ์หมดอายุ"}, {"n": 25, "l": "เครืองมือ/อุปกรณ์ติดไปกับผ้า"}, {"n": 26, "l": "เครื่องมือไม่พร้อมใช้ /วัสดุขาดคราว"}, {"n": 27, "l": "ผ้าไม่พอใช้"}, {"n": 28, "l": "ท่อน้ำประปารั่ว/ชำรุด"}, {"n": "", "l": "Med Error"}, {"n": "", "l": "Precribing error (สั่งยาผิด)"}, {"n": "", "l": "Dispensing (จ่ายยาผิด)"}, {"n": "", "l": "key ยาผิด / ไม่คียา"}, {"n": 1, "l": "Right Patient"}, {"n": "", "l": "-ให้ยาผิดคน"}, {"n": 2, "l": "Right Drug"}, {"n": "", "l": "-ให้ยาผิดชนิด"}, {"n": "", "l": "-ให้ยาที่แพทย์ไม่มีคำสั่งการรักษา"}, {"n": "", "l": "-ให้ยาที่ผู้ป่วยเคยมีประวัติแพ้ยา"}, {"n": "", "l": "-ให้ยาที่หมดอายุ"}, {"n": "", "l": "-ให้ยาเสื่อมคุณภาพ"}, {"n": 3, "l": "Right Dose"}, {"n": "", "l": "-ให้ยาผิดขนาด"}, {"n": "", "l": "-คำนวนขนาดยาผิด"}, {"n": "", "l": "-ไม่สามารถใช้ยาที่มีเทคนิคบริหารพิเศษ เช่นยาพ่น"}, {"n": "", "l": "-ให้ยาผิดความแรง"}, {"n": "", "l": "-ให้ยาผิดความเข้มข้น"}, {"n": "", "l": "-การเจือจางผิดสัดส่วน"}, {"n": "", "l": "-ให้ยาซ้ำ"}, {"n": "", "l": "-ให้ให้ยาที่แพทย์สั่งหยุด"}, {"n": "", "l": "-การต่อยาโดยที่แพทย์ไม่ได้สั่ง"}, {"n": "", "l": "-ไม่ได้ให้ยา / ลืมให้ยา / ข้ามไปให้เวลาใหม่"}, {"n": 4, "l": "Right Time"}, {"n": "", "l": "-ให้ยาผิดไปจากเวลาที่กำหนด"}, {"n": "", "l": "-ลืมให้ยา ให้เมื่อนึกได้"}, {"n": "", "l": "-หยดให้ยาเร็วกว่าแพทย์กำหนด"}, {"n": "", "l": "-หยดให้ยายาวนานกว่าแพทย์กำหนด"}, {"n": "", "l": "-ให้ยาคลาดเคลื่อนระหว่างก่อน/หลังอาหาร"}, {"n": 5, "l": "Right Route"}, {"n": "", "l": "-ผิดช่องทางเช่น IV IM Sc Oral"}, {"n": "", "l": "-ให้ยาผิดอวัยวะ / ผิดข้าง"}, {"n": 6, "l": "Right Technique"}, {"n": "", "l": "-ผสมเข้าด้วยกันไม่เหมาะสม"}, {"n": "", "l": "-บริหารยาร่วม Y site ที่ไม่เหมาะสม"}, {"n": "", "l": "-เดินยาเร็ว/ช้า กว่าที่ควรจะเป็น"}, {"n": "", "l": "-เจือจางด้วยสารละลายที่ไม่เหมาะสม"}, {"n": "", "l": "-ให้ยาผิดลำดับ(เคมีบำบัด)"}, {"n": "", "l": "-บริหารยาด้วยเทคนิคไม่เหมาะสมส่งผลให้เกิดเหตุการณ์ไม่พึงประสงค์"}, {"n": "", "l": "-บดยาที่ไม่ควรบด"}, {"n": 7, "l": "Right Record (ลงได้เฉพาะกรณี A Bที่ไม่มีผลต่อผู้ป่วย)"}, {"n": "", "l": "-ไม่ลงชื่อในการบริหารยา"}, {"n": "", "l": "-ไม่ได้ OFF ยา ในใบ MAR"}, {"n": "", "l": "-ไม่คัดลอกรายการยาในใบ MAR"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดคน"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดชนิด"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดขนาด/ความแรง"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดเวลา"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดวิธี"}, {"n": "", "l": "-คัดลอกใบ MAR ผิดเทคนิคการบริหารยา"}, {"n": 8, "l": "การเบิกยา (ลงได้เฉพาะกรณี A Bที่ไม่มีผลต่อผู้ป่วย)"}, {"n": "", "l": "-เบิกยาผิดคน"}, {"n": "", "l": ""}, {"n": "", "l": "การจองเลือดทั้งหมดของหน่วยงาน(ครั้ง)"}, {"n": "", "l": "การให้เลือดทั้งหมดของหน่วยงาน(ครั้ง)"}];
+
+/* ---------------- Export RM: 14 ชีทเหมือนต้นฉบับ ---------------- */
+const RM_MONTHS = [   // ปีงบเริ่ม ต.ค. ของปีก่อนหน้า
+  {sheet:"ตค", name:"ตุลาคม",   m:10, back:true},  {sheet:"พย ", name:"พฤศจิกายน", m:11, back:true},
+  {sheet:"ธค", name:"ธันวาคม",  m:12, back:true},  {sheet:"มค",  name:"มกราคม",    m:1},
+  {sheet:"กพ", name:"กุมภาพันธ์", m:2},             {sheet:"มีค", name:"มีนาคม",    m:3},
+  {sheet:"เมย",name:"เมษายน",   m:4},              {sheet:"พค",  name:"พฤษภาคม",   m:5},
+  {sheet:"มิย",name:"มิถุนายน",  m:6},              {sheet:"กค",  name:"กรกฎาคม",   m:7},
+  {sheet:"สค", name:"สิงหาคม",  m:8},              {sheet:"กย",  name:"กันยายน",   m:9}
+];
+const RM_LEVELS = ["A","B","C","D","E","F","G","H","I"];
+
+// นับอุบัติการณ์ของเดือนหนึ่ง -> { "ชื่อรายการ": {A:0,...} }
+function rmCount(yearBE, m, back){
+  const yCE = (back ? yearBE - 1 : yearBE) - 543;
+  const out = {};
+  Object.keys(allDays).forEach(key=>{
+    const [yy,mm] = key.split("-").map(Number);
+    if(yy !== yCE || mm !== m) return;
+    const rec = allDays[key];
+    SHIFTS.forEach(sh=>{
+      const arr = getDeep(rec.shifts[sh], "events.incidents");
+      if(!Array.isArray(arr)) return;
+      arr.forEach(it=>{
+        if(!it || !it.sev) return;
+        // ลงที่รายการย่อยถ้ามี ไม่งั้นลงที่หมวด
+        const label = (it.item && it.item.trim()) ? it.item : it.group;
+        if(!label) return;
+        if(!out[label]) out[label] = {};
+        out[label][it.sev] = (out[label][it.sev] || 0) + 1;
+      });
+    });
+  });
+  return out;
+}
+
+// ชื่อในไฟล์ต้นฉบับมีช่องว่าง/จุดปน จึงเทียบแบบตัดช่องว่าง
+function rmNorm(s){ return String(s||"").replace(/\s+/g,"").replace(/^[.\-]+/,""); }
+
+// เรียงความบรรยายอุบัติการณ์ 1 รายการ
+function rmNarrative(sh, it, incharge){
+  const parts = [];
+  parts.push(`เวร${sh}`);
+  const what = [it.group, it.item].filter(x=>x && String(x).trim()).join(" / ");
+  if(what) parts.push(what);
+  if(it.sev) parts.push(`ระดับ ${it.sev}`);
+  if(it.bed) parts.push(`เตียง ${it.bed}`);
+  if(it.hn)  parts.push(`HN ${it.hn}`);
+  let s = parts.join(" · ");
+  if(it.detail) s += ` — ${it.detail}`;
+  if(it.action) s += ` | การแก้ไข: ${it.action}`;
+  if(incharge)  s += ` | Incharge: ${incharge}`;
+  return s;
+}
+// ดึงอุบัติการณ์ของเดือนหนึ่ง -> [{date, text}]
+function rmMonthIncidents(yearBE, m, back){
+  const yCE = (back ? yearBE - 1 : yearBE) - 543;
+  const out = [];
+  Object.keys(allDays).sort().forEach(key=>{
+    const [yy,mm,dd] = key.split("-").map(Number);
+    if(yy !== yCE || mm !== m) return;
+    SHIFTS.forEach(sh=>{
+      const arr = getDeep(allDays[key].shifts[sh], "events.incidents");
+      if(!Array.isArray(arr)) return;
+      arr.forEach(it=>{
+        if(!it || (!it.group && !it.detail)) return;
+        out.push({ date:`${dd}/${mm}/${yy+543}`,
+                   text: rmNarrative(sh, it, getDeep(allDays[key].shifts[sh],"incharge")) });
+      });
+    });
+  });
+  return out;
+}
+
+function buildRmSheet(title, counts, auto, incidents){
+  const aoa = [];
+  RM_TPL.forEach((row,i)=>{
+    if(i === 0){ aoa.push([ "", title ]); return; }      // หัวเรื่อง
+    if(i === 1){ aoa.push([ "ลำดับ","รายการความเสี่ยง","","Clinic" ]); return; }
+    if(i === 2){ aoa.push([ "","","RCU1", ...RM_LEVELS, "รวม" ]); return; }
+    const line = [ row.n, row.l ];
+    // เติมแถวตัวหารเฉพาะที่ความหมายตรงกันจริง ที่เหลือเว้นว่างให้กรอกเอง
+    if(auto){
+      const k = rmNorm(row.l);
+      if(k === rmNorm("การให้เลือดทั้งหมดของหน่วยงาน(ครั้ง)")){ line.push(auto.blood || ""); aoa.push(line); return; }
+      if(k === rmNorm("จำนวนผป  on ETT")){ line.push(auto.vent || ""); aoa.push(line); return; }
+      if(k === rmNorm("Vent Day")){ line.push(auto.vent || ""); aoa.push(line); return; }
+      if(k === rmNorm("วันนอนรวม")){ line.push(auto.bedDays || ""); aoa.push(line); return; }
+    }
+    let hit = null;
+    const key = rmNorm(row.l);
+    if(key){
+      for(const k in counts){ if(rmNorm(k) === key){ hit = counts[k]; break; } }
+    }
+    if(hit){
+      line.push("");                                     // คอลัมน์ RCU1
+      let sum = 0;
+      RM_LEVELS.forEach(L=>{ const v = hit[L] || 0; line.push(v || ""); sum += v; });
+      line.push(sum || "");
+    }
+    aoa.push(line);
+  });
+
+  // ---- รายละเอียดอุบัติการณ์ต่อท้ายตาราง ----
+  aoa.push([]); aoa.push([]);
+  const detailTitleRow = aoa.length;
+  aoa.push(["รายละเอียดอุบัติการณ์เดือนนี้"]);
+  const detailHeadRow = aoa.length;
+  aoa.push(["วันที่","รายละเอียด"]);
+  const detailStart = aoa.length;
+  const inc = incidents || [];
+  if(inc.length) inc.forEach(x=> aoa.push([x.date, x.text]));
+  else aoa.push(["", "ไม่มีอุบัติการณ์"]);
+  const detailEnd = aoa.length - 1;
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{wch:11},{wch:46},{wch:8}].concat(Array(9).fill({wch:5}), [{wch:8}]);
+  ws["!freeze"] = {xSplit:2, ySplit:3};
+  styleCell(ws,"B1",{font:{bold:true,sz:12,color:{rgb:"0D3B8C"}}});
+  ["A2","B2","D2"].forEach(a=>styleCell(ws,a,{font:{bold:true},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center"}}));
+  for(let col=2; col<=12; col++){
+    styleCell(ws, XLSX.utils.encode_cell({r:2,c:col}),
+      {font:{bold:true,color:{rgb:"0D3B8C"}},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center"}});
+  }
+  RM_TPL.forEach((row,i)=>{
+    if(i < 3) return;
+    const isHead = String(row.n).trim() !== "" || /^ด้าน|^Med Error/.test(row.l);
+    if(isHead){
+      for(let col=0; col<=12; col++) styleCell(ws, XLSX.utils.encode_cell({r:i,c:col}),
+        {font:{bold:true,color:{rgb:"082A66"}},fill:{fgColor:{rgb:"DDE6F7"}}});
+    } else {
+      styleCell(ws, XLSX.utils.encode_cell({r:i,c:1}), {alignment:{horizontal:"left",wrapText:true}});
+      for(let col=3; col<=11; col++) styleCell(ws, XLSX.utils.encode_cell({r:i,c:col}), {alignment:{horizontal:"center"}});
+      styleCell(ws, XLSX.utils.encode_cell({r:i,c:12}),
+        {font:{bold:true},fill:{fgColor:{rgb:"FFF4E0"}},alignment:{horizontal:"center"}});
+    }
+  });
+
+  // ผสานคอลัมน์ B ถึงคอลัมน์สุดท้าย แล้วปรับความสูงแถวตามความยาวข้อความ
+  const LAST = 12;
+  ws["!merges"] = ws["!merges"] || [];
+  ws["!merges"].push({s:{r:detailTitleRow,c:0}, e:{r:detailTitleRow,c:LAST}});
+  ws["!merges"].push({s:{r:detailHeadRow,c:1},  e:{r:detailHeadRow,c:LAST}});
+  styleCell(ws, XLSX.utils.encode_cell({r:detailTitleRow,c:0}),
+    {font:{bold:true,sz:12,color:{rgb:"082A66"}},fill:{fgColor:{rgb:"DDE6F7"}},alignment:{horizontal:"left"}});
+  ["A","B"].forEach((_,n)=>styleCell(ws, XLSX.utils.encode_cell({r:detailHeadRow,c:n}),
+    {font:{bold:true,color:{rgb:"0D3B8C"}},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center"}}));
+
+  const rowsMeta = ws["!rows"] || [];
+  for(let r=detailStart; r<=detailEnd; r++){
+    ws["!merges"].push({s:{r,c:1}, e:{r,c:LAST}});
+    styleCell(ws, XLSX.utils.encode_cell({r,c:0}), {alignment:{horizontal:"center",vertical:"top"}});
+    styleCell(ws, XLSX.utils.encode_cell({r,c:1}), {alignment:{horizontal:"left",vertical:"top",wrapText:true}});
+    const cell = ws[XLSX.utils.encode_cell({r,c:1})];
+    const len = cell && cell.v ? String(cell.v).length : 0;
+    const perLine = 95;                       // ประมาณอักษรต่อบรรทัดของช่องที่ผสานแล้ว
+    rowsMeta[r] = { hpt: Math.max(16, Math.ceil(len / perLine) * 15) };
+  }
+  ws["!rows"] = rowsMeta;
+
+  return ws;
+}
+
+function buildRmDashboard(yearBE){
+  const aoa = [
+    [`RM ${yearBE} – RCU1`],[],
+    ["วิธีใช้งาน"],
+    ["1) ชีตรายเดือน ต.ค. " + (yearBE-1) + " – ก.ย. " + yearBE + " ใช้บันทึกข้อมูล RM"],
+    ["2) ชีต “รวมปี” สรุปข้อมูลทั้งปี"],
+    ["3) ชีต “รายละเอียด” ลิสต์ทุกอุบัติการณ์ทั้งปี (หมวด/ระดับ/เตียง/HN/คำอธิบาย/การแก้ไข)"],
+    ["4) ตัวเลข A–I มาจากอุบัติการณ์ที่บันทึกในระบบ RCU1"],
+    ["5) เติมให้อัตโนมัติ: วันนอนรวม, Vent Day, จำนวน ผป. on ETT, การให้เลือดทั้งหมด"],
+    ["6) แถวตัวหารอื่น (CATH Day, Central line Day, VAP, CAUTI, BSI, Bed sore) เว้นว่าง — กรอกเอง"],
+    [],["ชีตข้อมูล"]
+  ];
+  RM_MONTHS.forEach(m=>aoa.push([m.sheet]));
+  aoa.push(["รวมปี"]);
+  aoa.push(["รายละเอียด"]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{wch:70}];
+  styleCell(ws,"A1",{font:{bold:true,sz:14,color:{rgb:"0D3B8C"}}});
+  styleCell(ws,"A3",{font:{bold:true}});
+  styleCell(ws,"A9",{font:{bold:true}});
+  return ws;
+}
+
+// ปีงบเปลี่ยนเดือนตุลาคม
+(function fillRmYears(){
+  const sel = document.getElementById("rm-year");
+  const now = new Date();
+  const curBE = now.getFullYear() + 543 + (now.getMonth() + 1 >= 10 ? 1 : 0);
+  for(let y = curBE + 1; y >= curBE - 3; y--){
+    const o = document.createElement("option");
+    o.value = y; o.textContent = `พ.ศ. ${y}  (ต.ค. ${y-1} – ก.ย. ${y})`;
+    if(y === curBE) o.selected = true;
+    sel.appendChild(o);
+  }
+})();
+
+// รวมค่าจากหัตถการ/ป4p ของเดือนหนึ่ง เพื่อเติมแถวตัวหารที่ความหมายตรงกัน
+function rmAuto(yearBE, m, back){
+  const yCE = (back ? yearBE - 1 : yearBE) - 543;
+  let blood = 0, vent = 0, bedDays = 0;
+  Object.keys(allDays).forEach(key=>{
+    const [yy,mm] = key.split("-").map(Number);
+    if(yy !== yCE || mm !== m) return;
+    const rec = allDays[key];
+    SHIFTS.forEach(sh=>{
+      const n = path=>{ const v = parseFloat(getDeep(rec.shifts[sh], path)); return isNaN(v) ? 0 : v; };
+      blood   += n("proc.p51") + n("proc.p52") + n("proc.p53");   // PRC/PC/FFP
+      vent    += n("proc.p1");                                     // On Volume respirator
+      bedDays += n("p4pd.bedDays");                                // จำนวนวันนอน
+    });
+  });
+  return { blood, vent, bedDays };
+}
+
+// ชีทรายละเอียด: 1 แถว = 1 อุบัติการณ์ ตลอดปีงบ
+function buildRmDetailSheet(yearBE){
+  const rows = [["วันที่","เวร","หมวด","รายการย่อย","ระดับ","เตียง","HN","รายละเอียดเหตุการณ์","การจัดการ/แก้ไข","Incharge"]];
+  const keys = Object.keys(allDays).filter(k=>{
+    const [yy,mm] = k.split("-").map(Number);
+    const beg = (yearBE - 1) - 543;   // ต.ค.–ธ.ค. ของปีก่อน
+    const end = yearBE - 543;         // ม.ค.–ก.ย. ของปีงบ
+    return (yy === beg && mm >= 10) || (yy === end && mm <= 9);
+  }).sort();
+
+  keys.forEach(k=>{
+    const [yy,mm,dd] = k.split("-").map(Number);
+    const thaiDate = `${dd}/${mm}/${yy+543}`;
+    SHIFTS.forEach(sh=>{
+      const arr = getDeep(allDays[k].shifts[sh], "events.incidents");
+      if(!Array.isArray(arr)) return;
+      arr.forEach(it=>{
+        if(!it || (!it.group && !it.detail)) return;
+        rows.push([thaiDate, sh, it.group||"", it.item||"", it.sev||"",
+                   it.bed||"", it.hn||"", it.detail||"", it.action||"",
+                   getDeep(allDays[k].shifts[sh], "incharge") || ""]);
+      });
+    });
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{wch:11},{wch:7},{wch:30},{wch:32},{wch:7},{wch:7},{wch:11},{wch:40},{wch:32},{wch:20}];
+  ws["!freeze"] = {ySplit:1};
+  for(let col=0; col<=9; col++){
+    styleCell(ws, XLSX.utils.encode_cell({r:0,c:col}),
+      {font:{bold:true,color:{rgb:"0D3B8C"}},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center"}});
+  }
+  for(let r=1; r<rows.length; r++){
+    const high = SEV_HIGH.includes(rows[r][4]);
+    for(let col=0; col<=9; col++){
+      styleCell(ws, XLSX.utils.encode_cell({r,c:col}),
+        Object.assign({alignment:{horizontal:(col>=7?"left":"center"),wrapText:true}},
+                      high ? {fill:{fgColor:{rgb:"FDECEA"}}} : {}));
+    }
+  }
+  return ws;
+}
+
+function exportRM(){
+  const btn = document.getElementById("btn-export-rm");
+  const lab = btn.querySelector("span:last-child");
+  const orig = lab.innerHTML;
+  lab.innerHTML = "⏳ กำลังสร้างไฟล์...";
+  btn.disabled = true;
+  try{
+    saveStore();
+    const yearBE = parseInt(document.getElementById("rm-year").value) || 2569;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, buildRmDashboard(yearBE), "Dashboard");
+
+    const yearTotal = {};
+    const yearAuto = { blood:0, vent:0, bedDays:0 };
+    let yearInc = [];
+    RM_MONTHS.forEach(mo=>{
+      const counts = rmCount(yearBE, mo.m, mo.back);
+      const auto = rmAuto(yearBE, mo.m, mo.back);
+      const monthInc = rmMonthIncidents(yearBE, mo.m, mo.back);
+      yearInc = yearInc.concat(monthInc);
+      yearAuto.blood += auto.blood; yearAuto.vent += auto.vent; yearAuto.bedDays += auto.bedDays;
+      // สะสมเข้ารวมปี
+      Object.keys(counts).forEach(k=>{
+        if(!yearTotal[k]) yearTotal[k] = {};
+        RM_LEVELS.forEach(L=>{
+          if(counts[k][L]) yearTotal[k][L] = (yearTotal[k][L] || 0) + counts[k][L];
+        });
+      });
+      const yShown = (mo.back ? yearBE - 1 : yearBE);
+      const title = `รายงานอุบัติการณ์ เดือน ${mo.name}  ${yShown}  กลุ่มภารกิจด้านการพยาบาลปี  ${yearBE}`;
+      XLSX.utils.book_append_sheet(wb, buildRmSheet(title, counts, auto, monthInc), mo.sheet);
+    });
+
+    XLSX.utils.book_append_sheet(wb,
+      buildRmSheet(`รายงานอุบัติการณ์ รวมทั้งปี  กลุ่มภารกิจด้านการพยาบาลปี  ${yearBE}`, yearTotal, yearAuto, yearInc), "รวมปี");
+
+    XLSX.utils.book_append_sheet(wb, buildRmDetailSheet(yearBE), "รายละเอียด");
+
+    XLSX.writeFile(wb, `RM_${yearBE}_RCU1.xlsx`);
+  }catch(err){
+    showPopup("สร้างไฟล์ RM ไม่สำเร็จ\n" + (err.message || err));
+  }finally{
+    lab.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+document.getElementById("btn-export-rm").addEventListener("click", exportRM);
+
+/* ---------------- Export รายงานเชื้อดื้อยา IC ---------------- */
+let icExportMode = "month";
+document.querySelectorAll(".ic-mode-btn").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll(".ic-mode-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    icExportMode = b.dataset.icmode;
+    document.getElementById("ic-month-row").style.display = icExportMode==="month" ? "flex" : "none";
+    document.getElementById("ic-year-row").style.display  = icExportMode==="year"  ? "flex" : "none";
+  });
+});
+(function initIcExport(){
+  document.getElementById("ic-month").value = localISO().slice(0,7);
+  const sel = document.getElementById("ic-year");
+  const now = new Date();
+  const curBE = now.getFullYear() + 543 + (now.getMonth() + 1 >= 10 ? 1 : 0);
+  for(let y = curBE + 1; y >= curBE - 3; y--){
+    const o = document.createElement("option");
+    o.value = y; o.textContent = `พ.ศ. ${y}  (ต.ค. ${y-1} – ก.ย. ${y})`;
+    if(y === curBE) o.selected = true;
+    sel.appendChild(o);
+  }
+})();
+
+function icSpecimenName(x){
+  if(!x.specimen) return "";
+  const extra = [x.specSite, x.specDetail].filter(v=>v && String(v).trim() && v !== "อื่นๆ").join(" ");
+  return extra ? `${x.specimen} (${extra})` : x.specimen;
+}
+function icOrganismName(x){
+  return (x.organism === "อื่นๆ" && x.organismOther) ? x.organismOther : (x.organism || "");
+}
+// เคสที่ "ผลเพาะเชื้อ" ตกอยู่ในเดือนที่กำหนด
+function icCasesOfMonth(yCE, m){
+  return icAll().filter(x=>{
+    const d = x.foundDate || x.createdDate;
+    if(!d) return false;
+    const [yy,mm] = d.split("-").map(Number);
+    return yy === yCE && mm === m;
+  }).sort((a,b)=>(a.foundDate||"").localeCompare(b.foundDate||""));
+}
+
+function buildIcSheet(title, cases){
+  const aoa = [[title],[]];
+  aoa.push(["วันที่ผลเพาะเชื้อ","เตียง","HN","ชื่อ","เชื้อ","สิ่งส่งตรวจ",
+            "วันที่ส่ง lab","รับจาก","Diagnosis","สถานะส่ง IC","หมายเหตุ"]);
+  const headRow = aoa.length - 1;
+  cases.forEach(x=>{
+    const p = regFind(x.hn);
+    aoa.push([ thaiShort(x.foundDate||x.createdDate), x.bed||"", x.hn||"",
+               x.name || (p && p.name) || "", icOrganismName(x), icSpecimenName(x),
+               x.labDate ? thaiShort(x.labDate) : "",
+               x.admitFrom || (p && p.admitFrom) || "", x.diagnosis || (p && p.diagnosis) || "",
+               x.sendStatus||"", x.note||"" ]);
+  });
+  if(!cases.length) aoa.push(["","","","ไม่มีรายการเชื้อดื้อยา"]);
+
+  // ---- สรุป B ต่อท้าย ----
+  aoa.push([]); aoa.push([]);
+  const sumTitleRow = aoa.length;
+  aoa.push(["สรุปเชื้อประจำเดือน"]);
+  const sumHeadRow = aoa.length;
+  aoa.push(["เชื้อ","จำนวนราย"].concat(IC_SPECIMENS));
+  const sumStart = aoa.length;
+
+  const byOrg = {};
+  cases.forEach(x=>{
+    const o = icOrganismName(x) || "(ไม่ระบุ)";
+    if(!byOrg[o]) byOrg[o] = { n:0, spec:{} };
+    byOrg[o].n++;
+    if(x.specimen) byOrg[o].spec[x.specimen] = (byOrg[o].spec[x.specimen]||0) + 1;
+  });
+  const orgNames = Object.keys(byOrg).sort();
+  orgNames.forEach(o=>{
+    aoa.push([o, byOrg[o].n].concat(IC_SPECIMENS.map(s=> byOrg[o].spec[s] || "")));
+  });
+  const totals = IC_SPECIMENS.map(s=> cases.filter(x=>x.specimen===s).length || "");
+  aoa.push(["รวม", cases.length].concat(totals));
+  const sumEnd = aoa.length - 1;
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const LAST = 10;
+  ws["!cols"] = [{wch:16},{wch:7},{wch:11},{wch:22},{wch:17},{wch:11},
+                 {wch:13},{wch:14},{wch:22},{wch:13},{wch:24}];
+  ws["!merges"] = [{s:{r:0,c:0}, e:{r:0,c:LAST}},
+                   {s:{r:sumTitleRow,c:0}, e:{r:sumTitleRow,c:LAST}}];
+  styleCell(ws,"A1",{font:{bold:true,sz:13,color:{rgb:"0D3B8C"}},alignment:{horizontal:"center"}});
+  for(let col=0; col<=LAST; col++){
+    styleCell(ws, XLSX.utils.encode_cell({r:headRow,c:col}),
+      {font:{bold:true,color:{rgb:"0D3B8C"}},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center",wrapText:true}});
+  }
+  for(let r=headRow+1; r<headRow+1+Math.max(cases.length,1); r++){
+    for(let col=0; col<=LAST; col++){
+      styleCell(ws, XLSX.utils.encode_cell({r,c:col}),
+        {alignment:{horizontal:(col===3||col===8||col===10)?"left":"center",wrapText:true}});
+    }
+  }
+  styleCell(ws, XLSX.utils.encode_cell({r:sumTitleRow,c:0}),
+    {font:{bold:true,sz:12,color:{rgb:"082A66"}},fill:{fgColor:{rgb:"DDE6F7"}}});
+  for(let col=0; col<=1+IC_SPECIMENS.length; col++){
+    styleCell(ws, XLSX.utils.encode_cell({r:sumHeadRow,c:col}),
+      {font:{bold:true,color:{rgb:"0D3B8C"}},fill:{fgColor:{rgb:"E8F0FD"}},alignment:{horizontal:"center"}});
+  }
+  for(let r=sumStart; r<=sumEnd; r++){
+    const isTotal = (r === sumEnd);
+    for(let col=0; col<=1+IC_SPECIMENS.length; col++){
+      styleCell(ws, XLSX.utils.encode_cell({r,c:col}),
+        Object.assign({alignment:{horizontal:col===0?"left":"center"}},
+          isTotal ? {font:{bold:true},fill:{fgColor:{rgb:"FFF4E0"}}} : {}));
+    }
+  }
+  return ws;
+}
+
+async function exportIC(){
+  const btn = document.getElementById("btn-export-ic");
+  const lab = btn.querySelector("span:last-child");
+  const orig = lab.innerHTML;
+  lab.innerHTML = "⏳ กำลังสร้างไฟล์...";
+  btn.disabled = true;
+  try{
+    await loadRegistry();                       // ให้ชื่อ/รับจาก/Dx ครบก่อนเขียนไฟล์
+    const wb = XLSX.utils.book_new();
+    if(icExportMode === "month"){
+      const v = document.getElementById("ic-month").value;
+      if(!v){ showPopup("กรุณาเลือกเดือนก่อน Export"); return; }
+      const [y,m] = v.split("-").map(Number);
+      XLSX.utils.book_append_sheet(wb,
+        buildIcSheet(`รายงานเชื้อดื้อยา IC — ${THAI_MONTHS_FULL[m]} ${y+543}`, icCasesOfMonth(y,m)),
+        `${THAI_MONTHS[m]}${String(y+543).slice(-2)}`);
+      XLSX.writeFile(wb, `IC_${v}.xlsx`);
+    } else {
+      const yearBE = parseInt(document.getElementById("ic-year").value);
+      let all = [];
+      RM_MONTHS.forEach(mo=>{
+        const yCE = (mo.back ? yearBE - 1 : yearBE) - 543;
+        const cs = icCasesOfMonth(yCE, mo.m);
+        all = all.concat(cs);
+        const yShown = mo.back ? yearBE - 1 : yearBE;
+        XLSX.utils.book_append_sheet(wb,
+          buildIcSheet(`รายงานเชื้อดื้อยา IC — ${mo.name} ${yShown}`, cs), mo.sheet);
+      });
+      XLSX.utils.book_append_sheet(wb,
+        buildIcSheet(`รายงานเชื้อดื้อยา IC — รวมทั้งปีงบ ${yearBE}`, all), "รวมปี");
+      XLSX.writeFile(wb, `IC_${yearBE}.xlsx`);
+    }
+  }catch(err){
+    showPopup("สร้างไฟล์ IC ไม่สำเร็จ\n" + (err.message || err));
+  }finally{
+    lab.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+document.getElementById("btn-export-ic").addEventListener("click", exportIC);
+
+document.getElementById("btn-export-hattakan").addEventListener("click", ()=>{
+  exportMode === "month" ? exportHattakanMonths() : exportHattakanDay();
+});
+document.getElementById("btn-export-p4pdaily").addEventListener("click", ()=>{
+  exportMode === "month" ? exportP4pMonths() : exportP4pDay();
+});
+document.getElementById("btn-export-pdf").addEventListener("click", exportPdfRange);
+</script>
+</body>
+</html>

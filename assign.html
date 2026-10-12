@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0154ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RCU1">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>จัดเวร — RCU 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --navy:#0d3b8c; --navy-deep:#082a66; --sky:#d1e1fb; --paper:#f7f5ef;
+    --ink:#0e121a; --line:#b1bfdf; --amber:#c47a1f; --ok:#1f7a4d; --danger:#b9432f;
+    --shift-night:#3a4a8f; --shift-morn:#c47a1f; --shift-aft:#1f7a4d;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"IBM Plex Sans Thai","Sarabun",system-ui,sans-serif;background:var(--paper);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy-deep));color:#ffffff;padding:14px 16px 10px;}
+  header h1{margin:0;font-size:1.05rem;font-weight:700;}
+  header p{margin:4px 0 0;font-size:.74rem;opacity:.85;}
+  a.back{color:#9fc1ff;font-size:.75rem;text-decoration:none;}
+
+  details.settings{background:#ffffff;border-bottom:1px solid var(--line);}
+  details.settings summary{padding:10px 16px;font-size:.8rem;font-weight:600;color:var(--navy-deep);cursor:pointer;list-style:none;}
+  details.settings summary::-webkit-details-marker{display:none;}
+  details.settings summary::before{content:"⚙️ "; }
+  details.settings[open] summary::after{content:" ▲"; float:right; color:#4c4c4c;}
+  details.settings summary::after{content:" ▼"; float:right; color:#4c4c4c;}
+  .settings-body{padding:0 16px 14px;max-height:70vh;overflow-y:auto;}
+  .settings-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .settings-row .field label{display:block;font-size:.72rem;color:#333333;margin-bottom:3px;}
+  .settings-row select, .settings-row input[type=number]{padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:.82rem;}
+  .roster-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+  .roster-card h4{margin:0 0 6px;font-size:.78rem;color:var(--navy-deep);}
+  .roster-card textarea{width:100%;min-height:40px;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:.78rem;font-family:inherit;}
+  .btn-primary{padding:8px 14px;border:1px solid var(--navy);background:var(--navy);color:#ffffff;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;}
+  .persist-note{font-size:.68rem;color:#4c4c4c;margin-top:6px;line-height:1.5;}
+
+  .duty-shift-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .duty-shift-card h4{margin:0 0 8px;font-size:.8rem;}
+  .duty-shift-card.shift-ดึก{background:#e5e9f7;} .duty-shift-card.shift-ดึก h4{color:var(--shift-night);}
+  .duty-shift-card.shift-เช้า{background:#fbedd9;} .duty-shift-card.shift-เช้า h4{color:var(--shift-morn);}
+  .duty-shift-card.shift-บ่าย{background:#dbefdf;} .duty-shift-card.shift-บ่าย h4{color:var(--shift-aft);}
+  .duty-field{margin-bottom:6px;}
+  .duty-field label{display:block;font-size:.68rem;color:#333333;margin-bottom:2px;}
+  .duty-field textarea{width:100%;min-height:32px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:.76rem;font-family:inherit;resize:vertical;background:#ffffff;}
+
+  nav.tabs{display:flex;background:#ffffff;border-bottom:2px solid var(--line);position:sticky;top:0;z-index:6;}
+  .syncbar{background:#dde7f7;border-bottom:1px solid var(--line);padding:6px 14px;text-align:center;}
+  
+  
+  
+  
+  
+  nav.tabs button{flex:1;padding:10px 2px;background:none;border:none;font-size:.72rem;font-weight:600;color:#3d424c;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+  nav.tabs button.active{color:var(--navy);border-bottom-color:var(--navy);}
+
+  .jumpbar{display:flex;align-items:center;gap:8px;background:#ffffff;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:39px;z-index:5;}
+  .jumpbar label{font-size:.74rem;color:#333333;}
+  .jumpbar select{flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:.82rem;}
+  .locked-ui #assign-days, .locked-ui #work-days{pointer-events:none;opacity:.45;}   /* โหลดไม่สำเร็จ/กำลังโหลด: ยังแก้ไขไม่ได้ */
+  .jumpbar input[type=date]{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:.9rem;font-family:inherit;background:#ffffff;}
+  [id^="assignday-"],[id^="workday-"]{scroll-margin-top:92px;}   /* ไม่ให้หัววันถูกแถบแท็บด้านบนบัง */
+
+  main{padding:10px 8px 60px;max-width:900px;margin:0 auto;}
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+
+  .note{font-size:.7rem;color:#8a6d1f;background:#fff1d1;border:1px solid #f0dfa8;border-radius:8px;padding:7px 9px;margin:10px 4px;line-height:1.5;}
+
+  .day-heading{background:var(--navy-deep);color:#ffffff;font-size:.86rem;font-weight:700;padding:8px 12px;margin:14px 4px 0;border-radius:8px 8px 0 0;position:sticky;top:80px;z-index:4;}
+
+  /* --- Assign-names tab (cards) --- */
+  .shift-card{border:1px solid var(--line);border-top:none;background:#ffffff;margin:0 4px;padding:8px 10px 10px;}
+  .shift-card:last-child{border-radius:0 0 10px 10px;margin-bottom:4px;}
+  .shift-title{font-size:.72rem;font-weight:700;color:#ffffff;padding:4px 9px;border-radius:6px;display:inline-block;margin-bottom:8px;}
+  .shift-title.ดึก{background:var(--shift-night);} .shift-title.เช้า{background:var(--shift-morn);} .shift-title.บ่าย{background:var(--shift-aft);}
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .role-item{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 8px;}
+  .role-item label{display:block;font-size:.64rem;color:#3c3c3c;margin-bottom:2px;}
+  .role-item select{width:100%;padding:6px 4px;border:1px solid var(--line);border-radius:6px;font-size:.78rem;}
+  .role-item.changed{background:#fbd9cf;border:1.5px solid var(--danger);}
+  .role-item.changed select{border-color:var(--danger);color:var(--danger);font-weight:700;}
+  .changed-tag{color:var(--danger);font-weight:700;font-size:.62rem;}
+  .btn-swap{background:#ffffff;border:1.5px solid var(--danger);color:var(--danger);font-weight:700;font-size:.68rem;padding:3px;border-radius:6px;width:100%;height:100%;cursor:pointer;align-self:stretch;}
+  .btn-swap:active{background:#fbd9cf;}
+  .btn-swap.pending{background:transparent;color:var(--ok);border-color:var(--ok);}
+.btn-swap.wide{grid-column:1 / -1;height:auto;min-height:38px;}
+  .name-cell.changed-name{color:var(--danger) !important;}
+  .history-table{width:100%;border-collapse:collapse;font-size:.78rem;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(13,59,140,.06);}
+  .history-table th{background:var(--sky);color:var(--navy-deep);padding:7px 6px;font-size:.7rem;}
+  .history-table td{padding:6px;border-bottom:1px solid #e1e1e1;font-size:.76rem;}
+  .history-empty{text-align:center;color:#4c4c4c;padding:20px;font-size:.8rem;}
+  .swap-arrow{color:#4c4c4c;margin:0 3px;}
+  .swap-old{color:#4c4c4c;text-decoration:line-through;}
+  .swap-new{color:var(--danger);font-weight:700;}
+
+  /* --- Work tab (bed table) --- */
+  .shift-label{font-size:.72rem;font-weight:700;color:#ffffff;padding:5px 10px;margin:0 4px;}
+  .copy-prev-btn{background:rgba(255,255,255,.94);color:#0e121a;border:0;border-radius:6px;padding:3px 9px;font-size:.68rem;font-weight:700;font-family:inherit;cursor:pointer;}
+  .copy-prev-btn:active{background:#dde7f7;}
+  .shift-label.shift-ดึก{background:var(--shift-night);}
+  .shift-label.shift-เช้า{background:var(--shift-morn);}
+  .shift-label.shift-บ่าย{background:var(--shift-aft);}
+  .scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-top:none;margin:0 4px;}
+  table.sheet-table{width:100%;min-width:760px;border-collapse:collapse;font-size:.8rem;background:#ffffff;}
+  table.sheet-table th{background:var(--sky);color:var(--navy-deep);padding:6px 4px;font-size:.66rem;border:1px solid var(--line);white-space:nowrap;}
+  table.sheet-table td{padding:3px;border:1px solid var(--line);text-align:center;vertical-align:middle;}
+  table.sheet-table select, table.sheet-table input[type=text]{
+    width:100%;padding:6px 5px;border:1px solid var(--line);border-radius:5px;font-size:.78rem;font-family:inherit;min-width:60px;
+  }
+  table.sheet-table input.bed-patient{min-width:150px;}
+  table.sheet-table input.bed-diag{min-width:110px;}
+  table.sheet-table input.autofilled, table.sheet-table select.autofilled{background:#fff6cc;}   /* เติมให้อัตโนมัติ ควรเหลือบตรวจ */
+  table.sheet-table select.bed-num{min-width:36px;padding:6px 1px;}
+  table.sheet-table select.bed-ptype{min-width:42px;padding:6px 1px;font-size:.7rem;}
+  table.sheet-table select.bed-infect{min-width:38px;padding:6px 1px;font-size:.64rem;}
+  .name-cell{font-weight:700;color:var(--navy-deep);font-size:.76rem;white-space:nowrap;}
+  .name-cell.empty{color:#5e5e5e;font-weight:400;font-style:italic;}
+  table.sheet-table input.grp-brk, table.sheet-table input.fixed-brk{min-width:42px;text-align:center;}
+  .duty-cell{font-size:.7rem;color:#222222;text-align:left !important;line-height:1.35;max-width:140px;white-space:normal;padding:5px 6px !important;}
+  .role-cell{font-weight:700;color:var(--navy-deep);white-space:nowrap;font-size:.68rem;padding-left:4px !important;padding-right:4px !important;}
+  tr.grp-even td{background:#ffffff;}
+  tr.grp-odd td{background:#e5edfb;}
+  .fixed-row td{background:#f7f7fb;}
+  tr.row-housekeeper td{background:#fbe7cf;}
+  tr.row-housekeeper .role-cell{color:var(--amber);}
+  tr.row-clerk td{background:#fbd9cf;}
+  tr.row-clerk .role-cell{color:#c4551f;}
+  tr.row-na td{background:#d5ebdd;}
+  tr.row-na .role-cell{color:var(--ok);}
+  tr.row-worker td{background:#e3ddf1;}
+  tr.row-worker .role-cell{color:#362850;}
+
+  /* --- summary --- */
+  .summary-table{width:100%;border-collapse:collapse;font-size:.8rem;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(13,59,140,.06);}
+  .summary-table th{background:var(--sky);color:var(--navy-deep);padding:8px 6px;font-size:.74rem;}
+  .summary-table td{padding:7px 6px;border-bottom:1px solid #e1e1e1;}
+  .bar-wrap{display:flex;align-items:center;gap:6px;}
+  .bar-bg{flex:1;background:#dde3f1;border-radius:6px;height:10px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;}
+  .count-num{width:20px;text-align:right;font-weight:700;font-size:.76rem;}
+  .avg-line{font-size:.72rem;color:#3c3c3c;margin:10px 2px;}
+  .tag-over{color:var(--danger);font-weight:700;}
+  .tag-under{color:var(--ok);font-weight:700;}
+  .tag-ok{color:#444444;}
+  .export-btn{display:block;width:calc(100% - 16px);background:var(--navy);color:#ffffff;border:none;border-radius:10px;padding:12px;font-size:.85rem;font-weight:700;margin:14px 8px 0;cursor:pointer;}
+  .print-btn{display:block;width:calc(100% - 8px);background:#fff;border:1.5px solid var(--navy);color:var(--navy-deep);border-radius:7px;padding:5px;font-size:.7rem;font-weight:700;margin:0 4px 10px;cursor:pointer;}
+  .print-btn:active{background:var(--sky);}
+
+  .prev-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.55);
+                display:flex;align-items:center;justify-content:center;padding:6px;}
+  .prev-box{background:#fff;border-radius:12px;width:100%;max-width:1200px;
+            height:calc(100vh - 12px);height:calc(100dvh - 12px);
+            display:flex;flex-direction:column;overflow:hidden;}
+  .prev-head{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--navy);color:#fff;}
+  .prev-head span{flex:1;font-weight:700;font-size:.86rem;}
+  .prev-head button{background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.9rem;
+                    width:32px;height:32px;border-radius:8px;cursor:pointer;}
+  .prev-body{flex:1;min-height:0;overflow:auto;padding:6px;background:#f4f6fa;}
+  /* แสดงขนาดเท่าไฟล์ PDF จริง (แนวนอน กว้าง 1100px) */
+  .prev-fit{margin:0 auto;overflow:hidden;}
+  .prev-head button.prev-zoom{width:auto;padding:0 10px;font-size:.72rem;font-weight:700;}
+  .prev-sheet{width:1100px;padding:16px;background:#fff;margin:0 auto;}
+  .prev-foot{padding:6px 10px;border-top:1px solid var(--line);}
+  .prev-foot button{width:100%;background:var(--ok);color:#fff;border:none;border-radius:8px;
+                    padding:9px;font-size:.85rem;font-weight:700;cursor:pointer;}
+  .prev-foot button:disabled{opacity:.6;}
+  .print-report{ display:none; }
+  .report-title{ font-weight:700; font-size:1rem; margin:0 0 10px; }
+  .report-shift-title{ font-weight:700; font-size:.84rem; margin:12px 0 4px; }
+  table.report-table{ width:100%; border-collapse:collapse; font-size:.74rem; }
+  table.report-table th, table.report-table td{ border:1px solid #999; padding:3px 5px; text-align:center; }
+  table.report-table th{ background:#eee; }
+  .chg{ color:#c00; font-weight:700; }
+
+  @media print {
+    body{background:#ffffff;}
+    header, details.settings, nav.tabs, .jumpbar, .print-btn, .btn-swap, .work-daypicker, .note{ display:none !important; }
+    section.panel{ display:none !important; }
+    section.panel.active{ display:block !important; }
+    main{ padding:0; max-width:none; }
+    #assign-days, #work-days{ display:none !important; }
+    .print-report{ display:none !important; }
+    table.report-table{ font-size:.68rem; }
+  }
+
+  /* ป้ายสถานะ: เม็ดยาเล็กๆ ลอยมุมขวาบน ตัวหนังสือแบบหน้าลงทะเบียน (พื้นน้ำเงินเข้มให้อ่านได้ทั้งบนแถบหัวและพื้นขาว) */
+  #sync-status{position:fixed;top:calc(8px + env(safe-area-inset-top, 0px));right:10px;z-index:80;max-width:72%;margin:0;
+    padding:3px 10px;border:0;border-radius:999px;background:rgba(16,32,72,.86);box-shadow:0 1px 4px rgba(0,0,0,.18);
+    font-size:10px;font-weight:700;line-height:1.5;text-align:right;text-shadow:none;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+  #sync-status.bad{pointer-events:auto;cursor:pointer;}
+  body{padding-bottom:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="index.html">‹ กลับเมนูหลัก</a>
+  <h1>Assign</h1>
+</header>
+
+<details class="settings">
+  <summary>ตั้งค่า (เดือน / รายชื่อ / หน้าที่พิเศษ)</summary>
+  <div class="settings-body">
+    <div class="settings-row">
+      <div class="field"><label>เดือน</label><select id="month-select"></select></div>
+      <div class="field"><label>ปี พ.ศ.</label><input type="number" id="year-input" value="2569" style="width:80px"></div>
+      <div class="field"><label>จำนวนวัน</label>
+        <select id="num-days"><option>28</option><option>29</option><option>30</option><option selected>31</option></select>
+      </div>
+    </div>
+    <div class="roster-card">
+      <h4>อัตราแต้ม P4P — Incharge (อ้างอิงไฟล์ p4p_RCU, วุฒิ ป.ตรี)</h4>
+      <div class="settings-row" style="margin-bottom:0;">
+        <div class="field"><label>เช้า (แต้ม/ครั้ง)</label><input type="number" step="0.1" id="rate-morning" value="37.8" style="width:80px"></div>
+        <div class="field"><label>บ่าย/ดึก (แต้ม/ครั้ง)</label><input type="number" step="0.1" id="rate-other" value="25.2" style="width:80px"></div>
+      </div>
+      <div class="persist-note">ไฟล์ P4P จริงรวมเวรบ่าย+ดึกเป็นอัตราเดียวกัน — ถ้าวุฒิ/อัตราของหน่วยงานเปลี่ยน แก้ตัวเลขนี้ได้เลย</div>
+    </div>
+    <div class="roster-card">
+      <h4>พยาบาล (Incharge / Member1-3 / แม่บ้าน)</h4>
+      <textarea id="roster-rn">ผ่องนภา, รวิวรรณ, พนิดา, กรรณิกา, มงคล, วรัญญา, ลลิดา, กันยารัตน์, เยาวลักษณ์, ศรีสุดา, อติพร, นันทวี, จิราภรณ์, สุภรัตน์, สุลักษณา, ระพีภัทร, กมลพรรณ</textarea>
+    </div>
+    <div class="roster-card">
+      <h4>NA (เฉพาะหน้ามอบหมายงาน)</h4>
+      <textarea id="roster-na">วนิดา, ยุพาพร, ดวงกมล, แวววิไล</textarea>
+    </div>
+    <div class="roster-card">
+      <h4>คนงาน (เฉพาะหน้ามอบหมายงาน)</h4>
+      <textarea id="roster-wk">ชนะชัย, จันทิมา, สุภชัย, สุภไชย</textarea>
+    </div>
+    <h4 style="margin:14px 0 6px;font-size:.85rem;color:var(--navy-deep)">หน้าที่พิเศษ — กำหนดครั้งเดียว แยกตามเวร</h4>
+    <div id="duty-settings"></div>
+
+    <h4 style="margin:14px 0 6px;font-size:.85rem;color:var(--navy-deep)">คำนวณคะแนน P4P จากจำนวนครั้ง Incharge</h4>
+    <div class="roster-card">
+      <div class="settings-row">
+        <div class="field"><label>เวลาเช้า (นาที)</label><input type="number" id="p4p-time-morning" value="180" style="width:70px"></div>
+        <div class="field"><label>เวลาบ่าย/ดึก (นาที)</label><input type="number" id="p4p-time-other" value="120" style="width:70px"></div>
+        <div class="field"><label>ทักษะ/ความซับซ้อน (เท่า)</label><input type="number" step="0.05" id="p4p-skill" value="1.5" style="width:70px"></div>
+        <div class="field"><label>ตัวคูณวุฒิ</label><input type="number" step="0.01" id="p4p-qual" value="0.14" style="width:70px"></div>
+      </div>
+      <small>ค่าเริ่มต้นตามไฟล์ p4p_RCU จริง (วุฒิ ป.ตรี) — แก้ได้ถ้าตำแหน่ง/วุฒิต่างจากนี้</small>
+    </div>
+
+    <button class="btn-primary" id="btn-generate">บันทึกการตั้งค่า</button>
+    <div class="persist-note">ข้อมูลที่กรอกไว้แล้ว (ชื่อ/เตียง/ผู้ป่วย ฯลฯ) จะไม่หายเมื่อกดปุ่มนี้ — จะหายเฉพาะตอนปิดแท็บ/รีเฟรชหน้าเว็บเท่านั้น</div>
+  </div>
+</details>
+
+<div class="syncbar">
+  <span id="sync-status">กำลังเชื่อมส่วนกลาง...</span>
+</div>
+
+<nav class="tabs">
+  <button data-tab="assign" class="active">🧭 Assign</button>
+  <button data-tab="work">🛏️ มอบหมาย</button>
+  <button data-tab="summary">📊 สรุป</button>
+  <button data-tab="history">📜 ประวัติ</button>
+</nav>
+
+<div class="jumpbar" id="jumpbar">
+  <label>ไปวันที่</label>
+  <input type="date" id="date-pick">
+  <select id="jump-select" style="display:none"></select>
+</div>
+
+<main>
+
+<section class="panel active" id="assign">
+  <button class="print-btn" id="btn-print-assign">📥 ดาวน์โหลด PDF</button>
+  <div id="restore-oct" style="display:none;margin:8px 4px 10px;"><button type="button" class="print-btn" id="btn-restore-oct" style="margin:0;width:100%;padding:8px;font-size:.8rem;background:#fff6cc;border-color:#c99400;color:#6b4e00;">🛟 กู้รายชื่อ ต.ค. 2569 (จากตารางเวร + ประวัติแลกเวร)</button></div>
+  <div id="assign-days"></div>
+  <div id="assign-print-report" class="print-report"></div>
+</section>
+
+<section class="panel" id="work">
+  <div class="work-daypicker" style="display:flex;align-items:center;gap:8px;margin:0 4px 10px;">
+    <button class="print-btn" id="btn-print-work" style="display:inline-block;width:auto;flex:0 0 auto;margin:0;padding:6px 12px;">📥 ดาวน์โหลด PDF</button>
+    <label style="font-size:.74rem;color:#666;margin-left:auto;">วันที่</label>
+    <input type="date" id="work-date-pick" style="flex:0 1 170px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:.9rem;font-family:inherit;background:#fff;">
+    <input type="number" id="work-day-input" min="1" value="1" style="display:none;">
+  </div>
+  <div id="work-days"></div>
+  <div id="work-print-report" class="print-report"></div>
+
+<div class="prev-overlay" id="prev-overlay" style="display:none;">
+  <div class="prev-box">
+    <div class="prev-head">
+      <span id="prev-title">ตัวอย่างก่อนพิมพ์</span>
+      <button type="button" id="prev-zoom" class="prev-zoom">🔍 ขยาย</button>
+      <button type="button" id="prev-close">✕</button>
+    </div>
+    <div class="prev-body" id="prev-body"></div>
+    <div class="prev-foot">
+      <button type="button" id="prev-download">📥 ดาวน์โหลด PDF</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="summary">
+  <div id="summary-content"></div>
+</section>
+
+<section class="panel" id="history">
+  <div id="history-content"></div>
+</section>
+
+</main>
+
+<script>
+const SHIFTS = ["ดึก","เช้า","บ่าย"];
+const SHIFT_COLOR = { "ดึก":"#3a4a8f", "เช้า":"#c47a1f", "บ่าย":"#1f7a4d" };
+const PTYPES = ["5","4a","3a","3b"];
+const ROLES = ["Incharge","Member1","Member2","Member3"];
+const ROLE_LABELS = { Incharge:"Incharge", Member1:"Member 1", Member2:"Member 2", Member3:"Member 3" };
+const FIXED_KEYS = ["housekeeper"];
+const FIXED_LABELS = { housekeeper:"แม่บ้าน" };
+const FIXED_RESTRICT = { housekeeper: ["เช้า"] };   // แม่บ้านมีเฉพาะเวรเช้า (ดึก/บ่าย ไม่มี)
+function fixedAppliesTo(key, shift){ const r=FIXED_RESTRICT[key]; return !r || r.includes(shift); }
+const WORK_ONLY_KEYS = ["clerk","na","worker"];
+const WORK_ONLY_LABELS = { clerk:"เสมียน", na:"NA", worker:"คนงาน" };
+const WORK_ONLY_RESTRICT = { clerk: ["เช้า"] }; // only shows on this shift; keys absent here show every shift
+const MONTH_NAMES = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const BED_NUMBERS = [1,2,3,4,5,6,7,8];
+
+const DEFAULT_DUTY_SEED = {
+  Incharge: "ลงยอด, Assign, บันทึกเหตุการณ์, เบิกยาทุกวัน จ,พ,ศ",
+  Member1: "OK รถ Emergency, OK รถ CPR",
+  Member2: "OK ยาเสพติด",
+  Member3: "ตรวจสอบและ Clear stock ยา",
+  housekeeper: "ลง IC, เบิกน้ำเกลือ, เปลี่ยนสาย Ventilator, OK.ของใช้, เตรียมรถหัตถการ, เช็ดอุณหภูมิตู้เย็น",
+  clerk: "",
+  na: "ติดตามยา, ส่ง consult, ส่ง Lab",
+  worker: "ทำความสะอาดตู้โต๊ะข้างเตียง, เทขยะ, เบิกและนับผ้า",
+};
+const DEFAULT_BREAK = { Incharge:"12.00", Member1:"11.00", Member2:"12.00", Member3:"11.00", housekeeper:"12.00", clerk:"12.00", na:"11.00", worker:"12.00" };
+
+let NUM_DAYS = 31;
+let ROSTER_RN = [];
+let RATE_MORNING = 37.8;
+let RATE_OTHER = 25.2;
+let ROSTER_NA = [];
+let ROSTER_WK = [];
+let assign = {}; // ONE shared object for names + beds, used by both tabs
+let currentWorkDay = 1;
+let DUTY_CONFIG = {};
+SHIFTS.forEach(sh=>{
+  DUTY_CONFIG[sh] = {};
+  ROLES.concat(FIXED_KEYS).concat(WORK_ONLY_KEYS).forEach(r=> DUTY_CONFIG[sh][r] = DEFAULT_DUTY_SEED[r] || "");
+});
+let currentTab = "assign";
+let changeLog = []; // {day, shift, role, from, to, time}
+
+function parseRoster(text){ return text.split(",").map(s=>s.trim()).filter(Boolean); }
+function initMonthSelect(){
+  const sel = document.getElementById("month-select");
+  const now = new Date(), cur = now.getMonth();
+  sel.innerHTML = MONTH_NAMES.map((m,i)=>`<option value="${i}" ${i===cur?"selected":""}>${m}</option>`).join("");
+  document.getElementById("year-input").value = now.getFullYear() + 543;                           // พ.ศ. ปัจจุบัน
+  document.getElementById("num-days").value = String(new Date(now.getFullYear(), cur + 1, 0).getDate()); // จำนวนวันของเดือนนี้
+}
+function getMonthLabel(){
+  const mIdx = parseInt(document.getElementById("month-select").value);
+  const y = document.getElementById("year-input").value;
+  return `${MONTH_NAMES[mIdx]} ${y}`;
+}
+
+/* ---------------- data model (shared) ---------------- */
+function freshGroup(role){
+  return { role, name:"",
+    beds:[ {bed:"",patient:"",diag:"",ptype:"",infect:""}, {bed:"",patient:"",diag:"",ptype:"",infect:""} ] };
+}
+function freshDayShift(){
+  return { groups: ROLES.map(freshGroup), housekeeper:{name:""}, clerk:{name:""}, na:{name:""}, worker:{name:""}, baseline:null, pendingSwap:false, swappedRoles:{} };
+}
+// true if this role is currently mid-swap (live preview) OR was swapped in a past commit for this day/shift
+/* ===== กู้รายชื่อ ต.ค. 2569: ตารางเวร (ตัวพิมพ์จากรูป) + ชื่อล่าสุดจากประวัติแลกเวร เติมเฉพาะช่องที่ว่าง ===== */
+const OCT2569_ROSTER = {"1": {"ดึก": ["สุภรัตน์", "รวิวรรณ", "ศรีสุดา", "อติพร"], "เช้า": ["ผ่องนภา", "มงคล", "กมลพรรณ", "ระพีภัทร", ""], "บ่าย": ["กรรณิกา", "มงคล", "กันยารัตน์", "ลลิดา"]}, "2": {"ดึก": ["พนิดา", "วรัญญา", "อติพร", "สุภรัตน์"], "เช้า": ["ผ่องนภา", "กรรณิกา", "ระพีภัทร", "กมลพรรณ", "รวิวรรณ"], "บ่าย": ["ลลิดา", "กันยารัตน์", "ศรีสุดา", "กรรณิกา"]}, "3": {"ดึก": ["มงคล", "วรัญญา", "ผ่องนภา", "สุภรัตน์"], "เช้า": ["กันยารัตน์", "นันทวี", "กมลพรรณ", "ระพีภัทร", "อติพร"], "บ่าย": ["ศรีสุดา", "มงคล", "อติพร", "สุภรัตน์"]}, "4": {"ดึก": ["รวิวรรณ", "กันยารัตน์", "กรรณิกา", "นันทวี"], "เช้า": ["ศรีสุดา", "สุภรัตน์", "ระพีภัทร", "กมลพรรณ", "มงคล"], "บ่าย": ["ศรีสุดา", "อติพร", "นันทวี", "สุภรัตน์"]}, "5": {"ดึก": ["กรรณิกา", "รวิวรรณ", "มงคล", "วรัญญา"], "เช้า": ["ลลิดา", "นันทวี", "สุภรัตน์", "กมลพรรณ", "ผ่องนภา"], "บ่าย": ["ลลิดา", "รวิวรรณ", "ศรีสุดา", "นันทวี"]}, "6": {"ดึก": ["วรัญญา", "กรรณิกา", "มงคล", "กันยารัตน์"], "เช้า": ["สุภรัตน์", "ศรีสุดา", "นันทวี", "กมลพรรณ", "ผ่องนภา"], "บ่าย": ["กรรณิกา", "รวิวรรณ", "อติพร", "ลลิดา"]}, "7": {"ดึก": ["นันทวี", "วรัญญา", "ศรีสุดา", "กันยารัตน์"], "เช้า": ["มงคล", "ลลิดา", "อติพร", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["มงคล", "รวิวรรณ", "กรรณิกา", "วรัญญา"]}, "8": {"ดึก": ["อติพร", "พนิดา", "นันทวี", "ลลิดา"], "เช้า": ["ผ่องนภา", "สุภรัตน์", "ศรีสุดา", "กมลพรรณ", "กันยารัตน์"], "บ่าย": ["กันยารัตน์", "รวิวรรณ", "วรัญญา", "ศรีสุดา"]}, "9": {"ดึก": ["ลลิดา", "รวิวรรณ", "สุภรัตน์", "นันทวี"], "เช้า": ["ผ่องนภา", "อติพร", "กมลพรรณ", "ระพีภัทร", "กรรณิกา"], "บ่าย": ["อติพร", "พนิดา", "วรัญญา", "นันทวี"]}, "10": {"ดึก": ["มงคล", "รวิวรรณ", "ลลิดา", "ศรีสุดา"], "เช้า": ["พนิดา", "กรรณิกา", "ระพีภัทร", "นันทวี", "วรัญญา"], "บ่าย": ["พนิดา", "กรรณิกา", "วรัญญา", "นันทวี"]}, "11": {"ดึก": ["ศรีสุดา", "ผ่องนภา", "อติพร", "สุภรัตน์"], "เช้า": ["มงคล", "กันยารัตน์", "กมลพรรณ", "ระพีภัทร", "รวิวรรณ"], "บ่าย": ["มงคล", "กรรณิกา", "ลลิดา", "กันยารัตน์"]}, "12": {"ดึก": ["วรัญญา", "ศรีสุดา", "สุภรัตน์", "อติพร"], "เช้า": ["พนิดา", "นันทวี", "รวิวรรณ", "กมลพรรณ", "ผ่องนภา"], "บ่าย": ["กันยารัตน์", "รวิวรรณ", "ศรีสุดา", "ลลิดา"]}, "13": {"ดึก": ["สุภรัตน์", "ผ่องนภา", "กรรณิกา", "พนิดา"], "เช้า": ["นันทวี", "วรัญญา", "ลลิดา", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["นันทวี", "ศรีสุดา", "อติพร", "สุภรัตน์"]}, "14": {"ดึก": ["กรรณิกา", "รวิวรรณ", "ลลิดา", "กันยารัตน์"], "เช้า": ["อติพร", "พนิดา", "กมลพรรณ", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["อติพร", "ศรีสุดา", "นันทวี", "สุภรัตน์"]}, "15": {"ดึก": ["กรรณิกา", "พนิดา", "รวิวรรณ", "วรัญญา"], "เช้า": ["ผ่องนภา", "ลลิดา", "นันทวี", "ระพีภัทร", "สุภรัตน์"], "บ่าย": ["อติพร", "ลลิดา", "กันยารัตน์", "กรรณิกา"]}, "16": {"ดึก": ["ศรีสุดา", "วรัญญา", "นันทวี", "สุภรัตน์"], "เช้า": ["ผ่องนภา", "กันยารัตน์", "กมลพรรณ", "ระพีภัทร", "อติพร"], "บ่าย": ["วรัญญา", "กันยารัตน์", "กรรณิกา", "รวิวรรณ"]}, "17": {"ดึก": ["พนิดา", "ผ่องนภา", "อติพร", "นันทวี"], "เช้า": ["สุภรัตน์", "กรรณิกา", "กมลพรรณ", "ระพีภัทร", "มงคล"], "บ่าย": ["สุภรัตน์", "กรรณิกา", "รวิวรรณ", "มงคล"]}, "18": {"ดึก": ["นันทวี", "พนิดา", "ลลิดา", "ศรีสุดา"], "เช้า": ["สุภรัตน์", "รวิวรรณ", "กมลพรรณ", "ระพีภัทร", ""], "บ่าย": ["รวิวรรณ", "กรรณิกา", "มงคล", "อติพร"]}, "19": {"ดึก": ["กันยารัตน์", "ลลิดา", "พนิดา", "ศรีสุดา"], "เช้า": ["วรัญญา", "นันทวี", "สุภรัตน์", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["วรัญญา", "นันทวี", "สุภรัตน์", "พนิดา"]}, "20": {"ดึก": ["ศรีสุดา", "กรรณิกา", "ลลิดา", "กันยารัตน์"], "เช้า": ["รวิวรรณ", "อติพร", "กมลพรรณ", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["พนิดา", "มงคล", "ลลิดา", "กันยารัตน์"]}, "21": {"ดึก": ["รวิวรรณ", "ศรีสุดา", "อติพร", "สุภรัตน์"], "เช้า": ["กันยารัตน์", "กรรณิกา", "วรัญญา", "ลลิดา", "ผ่องนภา"], "บ่าย": ["กันยารัตน์", "กรรณิกา", "ลลิดา", "พนิดา"]}, "22": {"ดึก": ["อติพร", "สุภรัตน์", "มงคล", "วรัญญา"], "เช้า": ["ผ่องนภา", "พนิดา", "กมลพรรณ", "ระพีภัทร", "กันยารัตน์"], "บ่าย": ["ศรีสุดา", "พนิดา", "กันยารัตน์", "ลลิดา"]}, "23": {"ดึก": ["รวิวรรณ", "ผ่องนภา", "กรรณิกา", "นันทวี"], "เช้า": ["ผ่องนภา", "พนิดา", "วรัญญา", "ลลิดา", "ศรีสุดา"], "บ่าย": ["ศรีสุดา", "ลลิดา", "อติพร", "สุภรัตน์"]}, "24": {"ดึก": ["กันยารัตน์", "รวิวรรณ", "กรรณิกา", "วรัญญา"], "เช้า": ["อติพร", "นันทวี", "กมลพรรณ", "ระพีภัทร", "สุภรัตน์"], "บ่าย": ["อติพร", "ศรีสุดา", "นันทวี", "สุภรัตน์"]}, "25": {"ดึก": ["วรัญญา", "รวิวรรณ", "กรรณิกา", "มงคล"], "เช้า": ["สุภรัตน์", "กันยารัตน์", "กมลพรรณ", "ระพีภัทร", "พนิดา"], "บ่าย": ["นันทวี", "พนิดา", "กันยารัตน์", "รวิวรรณ"]}, "26": {"ดึก": ["สุภรัตน์", "มงคล", "วรัญญา", "ลลิดา"], "เช้า": ["พนิดา", "ศรีสุดา", "กมลพรรณ", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["รวิวรรณ", "ศรีสุดา", "กรรณิกา", "กันยารัตน์"]}, "27": {"ดึก": ["นันทวี", "พนิดา", "มงคล", "วรัญญา"], "เช้า": ["ลลิดา", "พนิดา", "กันยารัตน์", "กมลพรรณ", "ผ่องนภา"], "บ่าย": ["วรัญญา", "กรรณิกา", "มงคล", "รวิวรรณ"]}, "28": {"ดึก": ["ลลิดา", "พนิดา", "กันยารัตน์", "นันทวี"], "เช้า": ["อติพร", "ศรีสุดา", "สุภรัตน์", "ระพีภัทร", "ผ่องนภา"], "บ่าย": ["อติพร", "กรรณิกา", "มงคล", "วรัญญา"]}, "29": {"ดึก": ["ลลิดา", "ศรีสุดา", "กันยารัตน์", "สุภรัตน์"], "เช้า": ["ผ่องนภา", "รวิวรรณ", "อติพร", "ระพีภัทร", "กรรณิกา"], "บ่าย": ["พนิดา", "มงคล", "วรัญญา", "นันทวี"]}, "30": {"ดึก": ["ลลิดา", "กันยารัตน์", "ศรีสุดา", "อติพร"], "เช้า": ["ผ่องนภา", "มงคล", "กมลพรรณ", "ระพีภัทร", "วรัญญา"], "บ่าย": ["นันทวี", "รวิวรรณ", "พนิดา", "กรรณิกา"]}, "31": {"ดึก": ["สุภรัตน์", "ศรีสุดา", "อติพร", "มงคล"], "เช้า": ["กรรณิกา", "รวิวรรณ", "กมลพรรณ", "ระพีภัทร", "วรัญญา"], "บ่าย": ["ลลิดา", "รวิวรรณ", "วรัญญา", "กันยารัตน์"]}};
+function emptyNameSlots(){
+  let n = 0;
+  for(let d = 1; d <= NUM_DAYS; d++) SHIFTS.forEach(sh=>{ const r = assign[d] && assign[d][sh]; if(r) r.groups.forEach(g=>{ if(!String(g.name || "").trim()) n++; }); });
+  return n;
+}
+function updateRestoreBanner(){
+  const el = document.getElementById("restore-oct"); if(!el) return;
+  try{ el.style.display = (loadOk && loadedKey === "M2569-10" && emptyNameSlots() >= 10) ? "block" : "none"; }
+  catch(e){ el.style.display = "none"; }          // ตอนเปิดหน้า ตัวแปรสถานะยังไม่พร้อม: ข้ามไปก่อน
+}
+function restoreOct2569(){
+  if(loadedKey !== "M2569-10" || !loadOk) return;
+  if(!confirm("เติมรายชื่อพยาบาล ต.ค. 2569 ให้ช่องที่ว่าง\nจากตารางเวร (ตัวพิมพ์) + ชื่อล่าสุดในประวัติแลกเวร\n\nช่องที่มีชื่ออยู่แล้วจะไม่ถูกแตะ\nทำเลยไหม?")) return;
+  const last = {};
+  (changeLog || []).forEach(c=>{ last[String(c.day) + "|" + c.shift + "|" + c.role] = c.to; });
+  let filled = 0;
+  Object.keys(OCT2569_ROSTER).forEach(dk=>{
+    const day = +dk;
+    SHIFTS.forEach(sh=>{
+      const src = OCT2569_ROSTER[dk][sh], rec = assign[day] && assign[day][sh];
+      if(!src || !rec) return;
+      ROLES.forEach((role, gi)=>{
+        const g = rec.groups[gi]; if(!g || String(g.name || "").trim()) return;
+        const k = String(day) + "|" + sh + "|" + role;
+        let name = (k in last) ? last[k] : src[gi];
+        if(name === "(ว่าง)") name = "";
+        if(name){ g.name = name; filled++; }
+      });
+      if(src[4] && rec.housekeeper && !String(rec.housekeeper.name || "").trim()){ rec.housekeeper.name = src[4]; filled++; }
+    });
+  });
+  renderAssignDays();
+  if(typeof renderWorkDay === "function") renderWorkDay();
+  scheduleCloudSave({ type: "click", target: document.body });
+  updateRestoreBanner();
+  alert("เติมกลับ " + filled + " ช่องแล้ว\nตรวจดูสักรอบ ช่องไหนไม่ตรง แก้ได้ตามปกติ");
+}
+function isRoleChanged(rec, role, currentName){
+  if(rec.swappedRoles && rec.swappedRoles[role]) return true;
+  if(rec.pendingSwap && rec.baseline && rec.baseline[role] !== currentName) return true;
+  return false;
+}
+function ensureAssignDays(){
+  for(let d=1; d<=NUM_DAYS; d++){
+    if(!assign[d]) assign[d] = {};
+    SHIFTS.forEach(sh=>{
+      if(!assign[d][sh]) assign[d][sh] = freshDayShift();
+    });
+  }
+}
+
+function buildOptions(list, selected){
+  let html = `<option value="">-</option>`;
+  if(selected && list.indexOf(selected) < 0) list = [selected].concat(list);   // ชื่อที่มีในข้อมูลแต่ไม่อยู่ในรายชื่อตั้งค่า: ยังแสดง
+  list.forEach(name=>{
+    html += `<option value="${name}" ${name===selected?"selected":""}>${name}</option>`;
+  });
+  return html;
+}
+function buildBedOptions(selected){
+  let html = `<option value="">-</option>`;
+  BED_NUMBERS.forEach(n=>{
+    html += `<option value="${n}" ${String(n)===String(selected)?"selected":""}>${n}</option>`;   // เลขเตียงอย่างเดียว ชื่ออยู่ในช่องชื่อผู้ป่วย
+  });
+  return html;
+}
+function buildPtypeOptions(selected){
+  let html = `<option value="">-</option>`;
+  PTYPES.forEach(pt=>{
+    html += `<option value="${pt}" ${pt===selected?"selected":""}>${pt}</option>`;
+  });
+  return html;
+}
+function buildInfectOptions(selected){
+  const opts = [ {v:"ไม่ติดเชื้อ", l:"ไม่ติด"}, {v:"ติดเชื้อ", l:"ติด"} ];
+  let html = `<option value="">-</option>`;
+  opts.forEach(o=>{
+    html += `<option value="${o.v}" ${o.v===selected?"selected":""}>${o.l}</option>`;
+  });
+  return html;
+}
+function nameCellHtml(name, changed){
+  if(!name) return `<span class="name-cell empty">ยังไม่ได้ assign</span>`;
+  return `<span class="name-cell${changed?" changed-name":""}">${name}</span>`;
+}
+
+/* ---------------- settings: duty editor ---------------- */
+function renderDutySettings(){
+  const el = document.getElementById("duty-settings");
+  let html = "";
+  SHIFTS.forEach(sh=>{
+    html += `<div class="duty-shift-card shift-${sh}"><h4>เวร${sh}</h4>`;
+    ROLES.forEach(role=>{
+      html += `<div class="duty-field"><label>${ROLE_LABELS[role]}</label>
+        <textarea class="duty-input" data-shift="${sh}" data-role="${role}">${DUTY_CONFIG[sh][role]}</textarea></div>`;
+    });
+    if(sh === "เช้า"){
+      FIXED_KEYS.forEach(key=>{
+        html += `<div class="duty-field"><label>${FIXED_LABELS[key]}</label>
+          <textarea class="duty-input" data-shift="${sh}" data-role="${key}">${DUTY_CONFIG[sh][key]}</textarea></div>`;
+      });
+    }
+    WORK_ONLY_KEYS.forEach(key=>{
+      const restrict = WORK_ONLY_RESTRICT[key];
+      if(restrict && !restrict.includes(sh)) return; // matches the work-tab roster exactly (e.g. clerk = เช้า only)
+      html += `<div class="duty-field"><label>${WORK_ONLY_LABELS[key]}</label>
+        <textarea class="duty-input" data-shift="${sh}" data-role="${key}">${DUTY_CONFIG[sh][key]}</textarea></div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+function readDutySettings(){
+  document.querySelectorAll(".duty-input").forEach(ta=>{
+    DUTY_CONFIG[ta.dataset.shift][ta.dataset.role] = ta.value;
+  });
+}
+
+/* ---------------- tab 1: Assign In-charge ---------------- */
+function renderAssignDays(){
+  const monthName = getMonthLabel();
+  let html = "";
+  for(let d=1; d<=NUM_DAYS; d++){
+    html += `<div id="assignday-${d}"><div class="day-heading">วันที่ ${d} เดือน ${monthName}</div>`;
+    SHIFTS.forEach(shift=>{
+      const rec = assign[d][shift];
+      html += `<div class="shift-card"><span class="shift-title ${shift}">เวร${shift}</span><div class="role-grid">`;
+      rec.groups.forEach((g, gi)=>{
+        const changed = isRoleChanged(rec, g.role, g.name);
+        html += `<div class="role-item${changed?" changed":""}"><label>${ROLE_LABELS[g.role]}${changed?' <span class="changed-tag">🔴 เปลี่ยนแล้ว</span>':""}</label>
+          <select class="role-select" data-day="${d}" data-shift="${shift}" data-gi="${gi}">${buildOptions(ROSTER_RN, g.name)}</select></div>`;
+      });
+      FIXED_KEYS.forEach(key=>{
+        if(!fixedAppliesTo(key, shift)) return;
+        html += `<div class="role-item"><label>${FIXED_LABELS[key]}</label>
+          <select class="fixed-select" data-day="${d}" data-shift="${shift}" data-key="${key}">${buildOptions(ROSTER_RN, rec[key].name)}</select></div>`;
+      });
+      const btnLabel = rec.pendingSwap ? "✅ Commit" : "🔁 เปลี่ยนเวร";
+      const hasFixedBox = FIXED_KEYS.some(k=>fixedAppliesTo(k, shift));
+      html += `<button class="btn-swap${rec.pendingSwap?" pending":""}${hasFixedBox?"":" wide"}" data-day="${d}" data-shift="${shift}">${btnLabel}</button>`;
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  }
+  document.getElementById("assign-days").innerHTML = html;
+  updateRestoreBanner();
+}
+document.getElementById("assign-days").addEventListener("change", (e)=>{
+  const t = e.target;
+  const day = t.dataset.day, shift = t.dataset.shift;
+  if(!day || !shift) return;
+  const rec = assign[day][shift];
+  if(t.classList.contains("role-select")){
+    rec.groups[t.dataset.gi].name = t.value;
+    const role = rec.groups[t.dataset.gi].role;
+    const changed = isRoleChanged(rec, role, t.value);
+    const item = t.closest(".role-item");
+    item.classList.toggle("changed", changed);
+    let tag = item.querySelector(".changed-tag");
+    if(changed && !tag){
+      item.querySelector("label").insertAdjacentHTML("beforeend", ' <span class="changed-tag">🔴 เปลี่ยนแล้ว</span>');
+    } else if(!changed && tag){
+      tag.remove();
+    }
+    if(Number(t.dataset.gi)===0) renderSummary();
+    syncWorkNameCells(day, shift);
+  } else if(t.classList.contains("fixed-select")){
+    rec[t.dataset.key].name = t.value;
+    syncWorkNameCells(day, shift);
+  }
+});
+document.getElementById("assign-days").addEventListener("click", (e)=>{
+  const btn = e.target.closest(".btn-swap");
+  if(!btn) return;
+  const day = btn.dataset.day, shift = btn.dataset.shift;
+  const rec = assign[day][shift];
+  const currentVals = {};
+  rec.groups.forEach(g=> currentVals[g.role] = g.name);
+
+  if(!rec.pendingSwap){
+    // 1st click: start tracking — snapshot current names, no log yet
+    rec.baseline = currentVals;
+    rec.pendingSwap = true;
+  } else {
+    // 2nd click (Commit): log whatever actually changed since the snapshot, then reset
+    const now = new Date();
+    const timeStr = now.toLocaleString("th-TH", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+    ROLES.forEach(role=>{
+      if(rec.baseline[role] !== currentVals[role]){
+        changeLog.push({
+          day, shift, role,
+          from: rec.baseline[role] || "(ว่าง)",
+          to: currentVals[role] || "(ว่าง)",
+          time: timeStr
+        });
+        rec.swappedRoles[role] = true; // persists after commit — red marker stays
+      }
+    });
+    if(currentTab === "history") renderHistory();
+    rec.baseline = null;
+    rec.pendingSwap = false;
+  }
+  renderAssignDays();
+  syncWorkNameCells(day, shift);
+});
+
+/* ---------------- tab 2: มอบหมายงาน (bed table) ---------------- */
+function buildShiftTable(day, shift){
+  const rec = assign[day][shift];
+  let html = `<div class="scroll-wrap"><table class="sheet-table" data-day="${day}" data-shift="${shift}"><tr>
+    <th>พยาบาล</th><th>ตำแหน่ง</th><th>เตียง</th><th>ชื่อผู้ป่วย</th><th>Dx</th>
+    <th>ประเภท</th><th>เชื้อ</th><th>หน้าที่พิเศษ</th><th>พัก</th>
+  </tr>`;
+
+  rec.groups.forEach((g, gi)=>{
+    const dutyText = DUTY_CONFIG[shift][g.role] || "";
+    const brk = DEFAULT_BREAK[g.role] || "";
+    g.beds.forEach((bed, bi)=>{
+      html += `<tr class="${gi % 2 === 0 ? "grp-even" : "grp-odd"}">`;
+      if(bi===0){
+        const changed = isRoleChanged(rec, g.role, g.name);
+        html += `<td rowspan="2" class="name-slot" data-gi="${gi}">${nameCellHtml(g.name, changed)}</td>`;
+        html += `<td rowspan="2" class="role-cell">${ROLE_LABELS[g.role]}</td>`;
+      }
+      html += `<td><select class="bed-num" data-day="${day}" data-shift="${shift}" data-gi="${gi}" data-bi="${bi}">${buildBedOptions(bed.bed)}</select></td>`;
+      html += `<td><input type="text" class="bed-patient" data-day="${day}" data-shift="${shift}" data-gi="${gi}" data-bi="${bi}" value="${bed.patient}" placeholder="ชื่อ-สกุล"></td>`;
+      html += `<td><input type="text" class="bed-diag" data-day="${day}" data-shift="${shift}" data-gi="${gi}" data-bi="${bi}" value="${bed.diag}" placeholder="Dx"></td>`;
+      html += `<td><select class="bed-ptype" data-day="${day}" data-shift="${shift}" data-gi="${gi}" data-bi="${bi}">${buildPtypeOptions(bed.ptype)}</select></td>`;
+      html += `<td><select class="bed-infect" data-day="${day}" data-shift="${shift}" data-gi="${gi}" data-bi="${bi}">${buildInfectOptions(bed.infect)}</select></td>`;
+      if(bi===0){
+        html += `<td rowspan="2" class="duty-cell">${dutyText}</td>`;
+        html += `<td rowspan="2"><input type="text" class="grp-brk" value="${brk}" readonly></td>`;
+      }
+      html += `</tr>`;
+    });
+  });
+
+  if(shift === "เช้า"){
+    FIXED_KEYS.forEach(key=>{
+      const dutyText = DUTY_CONFIG[shift][key] || "";
+      const brk = DEFAULT_BREAK[key] || "";
+      html += `<tr class="fixed-row row-${key}">
+        <td class="name-slot" data-key="${key}">${nameCellHtml(rec[key].name)}</td>
+        <td class="role-cell">${FIXED_LABELS[key]}</td>
+        <td colspan="6" class="duty-cell">${dutyText}</td>
+        <td><input type="text" class="fixed-brk" value="${brk}" readonly></td>
+      </tr>`;
+    });
+  }
+
+  const workRosterList = { clerk: ROSTER_RN, na: ROSTER_NA, worker: ROSTER_WK };
+  WORK_ONLY_KEYS.forEach(key=>{
+    const restrict = WORK_ONLY_RESTRICT[key];
+    if(restrict && !restrict.includes(shift)) return; // skip on shifts this role doesn't apply to
+    const dutyText = DUTY_CONFIG[shift][key] || "";
+    const brk = DEFAULT_BREAK[key] || "";
+    html += `<tr class="fixed-row row-${key}">
+      <td><select class="work-fixed-select" data-day="${day}" data-shift="${shift}" data-key="${key}">${buildOptions(workRosterList[key], rec[key].name)}</select></td>
+      <td class="role-cell">${WORK_ONLY_LABELS[key]}</td>
+      <td colspan="6" class="duty-cell">${dutyText}</td>
+      <td><input type="text" class="fixed-brk" value="${brk}" readonly></td>
+    </tr>`;
+  });
+
+  html += `</table></div>`;
+  return html;
+}
+function renderWorkDay(){
+  const input = document.getElementById("work-day-input");
+  let d = parseInt(input.value) || 1;
+  if(d < 1) d = 1;
+  if(d > NUM_DAYS) d = NUM_DAYS;
+  input.value = d;
+  currentWorkDay = d;
+  const monthName = getMonthLabel();
+  let html = `<div id="workday-${d}"><div class="day-heading">วันที่ ${d} เดือน ${monthName}</div>`;
+  SHIFTS.forEach(shift=>{
+    html += `<div class="shift-label shift-${shift}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">เวร${shift}<button type="button" class="copy-prev-btn" data-day="${d}" data-shift="${shift}">📋 คัดลอกจากเวรก่อน</button></div>${buildShiftTable(d, shift)}`;
+  });
+  html += `</div>`;
+  document.getElementById("work-days").innerHTML = html;
+}
+// live-update the name display in the work tab without a full re-render
+function syncWorkNameCells(day, shift){
+  const table = document.querySelector(`#work-days table[data-day="${day}"][data-shift="${shift}"]`);
+  if(!table) return;
+  const rec = assign[day][shift];
+  table.querySelectorAll(".name-slot").forEach(td=>{
+    if(td.dataset.gi !== undefined && td.dataset.gi !== ""){
+      const g = rec.groups[td.dataset.gi];
+      const changed = isRoleChanged(rec, g.role, g.name);
+      td.innerHTML = nameCellHtml(g.name, changed);
+    } else if(td.dataset.key){
+      td.innerHTML = nameCellHtml(rec[td.dataset.key].name);
+    }
+  });
+}
+document.getElementById("work-days").addEventListener("change", (e)=>{
+  const t = e.target;
+  const day = t.dataset.day, shift = t.dataset.shift;
+  if(!day || !shift) return;
+  const rec = assign[day][shift];
+  if(t.classList.contains("bed-num")){
+    const newVal = t.value;
+    if(newVal !== ""){
+      const dup = rec.groups.some((g, gIdx)=> g.beds.some((b, bIdx)=>
+        !(gIdx == t.dataset.gi && bIdx == t.dataset.bi) && b.bed !== "" && String(b.bed) === String(newVal)
+      ));
+      if(dup){
+        alert(`เตียง ${newVal} ถูกใช้ไปแล้วในเวรนี้ กรุณาเลือกเตียงอื่น`);
+        t.value = rec.groups[t.dataset.gi].beds[t.dataset.bi].bed || "";
+        return;
+      }
+    }
+    rec.groups[t.dataset.gi].beds[t.dataset.bi].bed = newVal;
+    autofillBed(t, rec, +day, shift);
+  }
+  else if(t.classList.contains("bed-ptype")){ rec.groups[t.dataset.gi].beds[t.dataset.bi].ptype = t.value; t.classList.remove("autofilled"); }
+  else if(t.classList.contains("bed-infect")){ rec.groups[t.dataset.gi].beds[t.dataset.bi].infect = t.value; t.classList.remove("autofilled"); }
+  else if(t.classList.contains("work-fixed-select")) rec[t.dataset.key].name = t.value;
+});
+document.getElementById("work-days").addEventListener("input", (e)=>{
+  const t = e.target;
+  const day = t.dataset.day, shift = t.dataset.shift;
+  if(!day || !shift) return;
+  const rec = assign[day][shift];
+  if(t.classList.contains("bed-patient")) rec.groups[t.dataset.gi].beds[t.dataset.bi].patient = t.value;
+  else if(t.classList.contains("bed-diag")) rec.groups[t.dataset.gi].beds[t.dataset.bi].diag = t.value;
+  if(t.classList.contains("bed-patient") || t.classList.contains("bed-diag")){ t.classList.remove("autofilled"); delete t.dataset.auto; }   // พิมพ์เอง = ไม่ใช่ค่าที่เติมให้แล้ว
+});
+
+/* ---------------- เลือกเลขเตียง -> เติมชื่อ + Dx จากเวรล่าสุดที่เตียงนั้นมีผู้ป่วย ---------------- */
+function normBed(v){ return String(v == null ? "" : v).replace(/เตียง/g, "").replace(/\s+/g, "").replace(/^0+(?=\d)/, "").toLowerCase(); }
+function findLastPatientForBed(bedNo, day, shift){
+  const want = normBed(bedNo); if(!want) return null;
+  const look = (data, d, s)=>{
+    const r = data && data[d] && data[d][s]; if(!r || !r.groups) return null;
+    for(const g of r.groups) for(const b of (g.beds || [])){
+      if(normBed(b.bed) === want && String(b.patient || "").trim()) return { patient: b.patient, diag: b.diag || "" };
+    }
+    return null;
+  };
+  // ย้อนจากเวรก่อนหน้าในเดือนนี้
+  let d = day, si = SHIFTS.indexOf(shift) - 1;
+  while(d >= 1){
+    for(; si >= 0; si--){ const hit = look(assign, d, SHIFTS[si]); if(hit) return hit; }
+    d--; si = SHIFTS.length - 1;
+  }
+  // ต้นเดือน: ดูเดือนก่อนจากสำเนาในเครื่อง (ถ้ามี)
+  try{
+    const yBE = currentYBE(), mIdx = currentMIdx();
+    const pY = mIdx === 0 ? yBE - 1 : yBE, pM = mIdx === 0 ? 11 : mIdx - 1;
+    const all = localAll(), ent = all[keyFor(pY, pM)] || all[legacyKeyFor(pY, pM)];
+    const prev = ent && ent.data && ent.data.assign;
+    if(prev){
+      for(let pd = 31; pd >= 1; pd--) for(let ps = SHIFTS.length - 1; ps >= 0; ps--){ const hit = look(prev, pd, SHIFTS[ps]); if(hit) return hit; }
+    }
+  }catch(e){}
+  return null;
+}
+// รายชื่อจากระบบลงทะเบียน ใช้เช็คว่าผู้ป่วยเดิมของเตียงจำหน่ายไปแล้วหรือยัง (โหลดไม่ได้ก็ข้ามการเช็ค)
+// ที่อยู่ระบบลงทะเบียน (ชุดเดียวกับที่หน้าบันทึกเหตุการณ์ใช้)
+const REG_URL = "https://script.google.com/macros/s/AKfycbz67llALRKtVGJwVew6PKmVynCO6tibYGh4T5eiBdYHfabp4TStZ9ODHfDOCDc89zU6/exec";
+let regPatients = null;
+async function loadRegForBeds(){
+  try{
+    const res = await fetch(REG_URL + "?action=load&t=" + Date.now());
+    const j = await res.json();
+    if(j && j.ok && Array.isArray(j.patients)) regPatients = j.patients;
+  }catch(e){}
+}
+setTimeout(refreshRegPatients, 0);      // ดึงหลังหน้าโหลดเสร็จ ไม่ถ่วงการเปิดหน้า
+// ผู้ป่วยที่นอนอยู่เตียงนี้ "ตอนนี้" ตามระบบลงทะเบียน
+function regDx(p){
+  const dx = String(p.diagnosis || "").trim(), sp = String(p.diagSpec || "").trim();
+  if(/อื่น/.test(dx) && sp) return sp;
+  return sp ? dx + " (" + sp + ")" : dx;
+}
+function regBedOccupant(bedNo){
+  if(!regPatients) return null;
+  const want = normBed(bedNo); if(!want) return null;
+  return regPatients.find(p => p.status === "admitted" && normBed(p.bed) === want) || null;
+}
+function regAdmittedByName(name){
+  if(!regPatients) return null;
+  const n = String(name || "").trim(); if(!n) return null;
+  return regPatients.find(p => p.status === "admitted" && String(p.name || "").trim() === n) || null;
+}
+let regLoadedAt = 0;
+async function refreshRegPatients(){
+  await loadRegForBeds();
+  regLoadedAt = Date.now();
+  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest && a.closest("#work-days");
+  if(currentTab === "work" && loadOk && !typing) renderWorkDay();            // ให้ตัวเลือกเตียงบอกชื่อล่าสุด
+}
+setInterval(refreshRegPatients, 60000);
+function isDischargedName(name){
+  if(!regPatients) return false;
+  const n = String(name || "").trim(); if(!n) return false;
+  const same = regPatients.filter(p => String(p.name || "").trim() === n);
+  return same.length > 0 && !same.some(p => p.status === "admitted");
+}
+/* ---------------- ปุ่ม "คัดลอกจากเวรก่อน": ยกเตียง + ชื่อ + Dx ของเวรก่อนหน้ามาทั้งชุด (เฉพาะช่องที่ว่าง) ---------------- */
+function prevShiftSource(day, shift){
+  const si = SHIFTS.indexOf(shift);
+  if(si > 0) return { rec: assign[day] && assign[day][SHIFTS[si-1]], label: `เวร${SHIFTS[si-1]}` };
+  if(day > 1) return { rec: assign[day-1] && assign[day-1][SHIFTS[SHIFTS.length-1]], label: `เวรบ่าย วันที่ ${day-1}` };
+  try{                                                   // วันที่ 1 เวรดึก: เวรบ่ายวันสุดท้ายของเดือนก่อน (จากสำเนาในเครื่อง)
+    const yBE = currentYBE(), mIdx = currentMIdx();
+    const pY = mIdx === 0 ? yBE - 1 : yBE, pM = mIdx === 0 ? 11 : mIdx - 1;
+    const all = localAll(), ent = all[keyFor(pY, pM)] || all[legacyKeyFor(pY, pM)];
+    const data = ent && ent.data, last = data && (parseInt(data.numDays) || 31);
+    const rec = data && data.assign && data.assign[last] && data.assign[last][SHIFTS[SHIFTS.length-1]];
+    if(rec) return { rec, label: "เวรบ่ายวันสุดท้ายของเดือนก่อน" };
+  }catch(e){}
+  return { rec: null, label: "" };
+}
+function copyFromPrevShift(day, shift){
+  const src = prevShiftSource(day, shift), dst = assign[day] && assign[day][shift];
+  if(!dst) return;
+  if(!src.rec || !src.rec.groups){ alert("ไม่มีข้อมูลของเวรก่อนหน้าให้คัดลอก"); return; }
+  const used = new Set();
+  dst.groups.forEach(g => g.beds.forEach(b => { const n = normBed(b.bed); if(n) used.add(n); }));
+  const copiedSlots = [], skippedDc = [];
+  src.rec.groups.forEach((sg, gi)=>{
+    const dg = dst.groups[gi]; if(!dg) return;
+    const isEmpty = b => !String(b.bed || "").trim() && !String(b.patient || "").trim() && !String(b.diag || "").trim() && !String(b.ptype || "").trim() && !String(b.infect || "").trim();
+    (sg.beds || []).forEach((sb, bi)=>{
+      const hasSrc = String(sb.bed || "").trim() || String(sb.patient || "").trim();
+      if(!hasSrc) return;
+      if(sb.patient && isDischargedName(sb.patient)){ skippedDc.push(`เตียง ${sb.bed || "-"}: ${sb.patient}`); return; }
+      const nowReg = sb.patient ? regAdmittedByName(sb.patient) : null;
+      const bedNow = (nowReg && nowReg.bed) ? String(nowReg.bed) : (sb.bed || "");        // ย้ายเตียงในระบบลงทะเบียนแล้ว: ใช้เตียงใหม่
+      const n = normBed(bedNow);
+      if(n && used.has(n)) return;                                            // เตียงนี้มีคนใช้ในเวรนี้แล้ว
+      // ช่องเดิมของคนเดิม ถ้ามีคนกรอกไว้แล้ว ใช้ช่องว่างถัดไปของคนเดิมแทน (ไม่ทับช่องที่กรอกแล้ว)
+      let ti = (dg.beds[bi] && isEmpty(dg.beds[bi])) ? bi : dg.beds.findIndex(isEmpty);
+      if(ti < 0) return;
+      const db = dg.beds[ti];
+      db.bed = bedNow; db.patient = sb.patient || ""; db.diag = sb.diag || "";
+      db.ptype = sb.ptype || ""; db.infect = sb.infect || "";                    // ประเภท + เชื้อ ตามเวรก่อนด้วย
+      if(n) used.add(n);
+      copiedSlots.push([gi, ti]);
+    });
+  });
+  renderWorkDay();
+  copiedSlots.forEach(([gi, bi])=>{
+    const sel = `[data-day="${day}"][data-shift="${shift}"][data-gi="${gi}"][data-bi="${bi}"]`;
+    document.querySelectorAll(`#work-days input.bed-patient${sel}, #work-days input.bed-diag${sel}, #work-days select.bed-ptype${sel}, #work-days select.bed-infect${sel}`)
+      .forEach(inp => { if(inp.value){ inp.classList.add("autofilled"); inp.dataset.auto = "1"; } });
+  });
+  if(copiedSlots.length) scheduleCloudSave({ type: "click", target: document.body });
+  const btn = document.querySelector(`#work-days .copy-prev-btn[data-day="${day}"][data-shift="${shift}"]`);
+  if(btn){
+    btn.textContent = copiedSlots.length ? `✓ คัดลอก ${copiedSlots.length} เตียงจาก${src.label}` : "ไม่มีช่องว่างให้คัดลอก";
+    setTimeout(()=>{ if(btn.isConnected) btn.textContent = "📋 คัดลอกจากเวรก่อน"; }, 3000);
+  }
+  if(skippedDc.length) alert("ไม่ได้คัดลอกผู้ป่วยที่จำหน่ายแล้ว:\n" + skippedDc.join("\n"));
+}
+document.getElementById("work-days").addEventListener("click", (e)=>{
+  const b = e.target.closest && e.target.closest(".copy-prev-btn");
+  if(b) copyFromPrevShift(+b.dataset.day, b.dataset.shift);
+});
+function autofillBed(sel, rec, day, shift){
+  const row = sel.closest("tr"); if(!row) return;
+  const pIn = row.querySelector("input.bed-patient"), dIn = row.querySelector("input.bed-diag");
+  if(!pIn || !dIn) return;
+  const bed = rec.groups[sel.dataset.gi].beds[sel.dataset.bi];
+  const canFill = !pIn.value.trim() || pIn.dataset.auto === "1";     // ไม่ทับชื่อที่พิมพ์เอง
+  if(!canFill) return;
+  const setVal = (inp, key, v, auto)=>{
+    inp.value = v; bed[key] = v;
+    if(auto){ inp.classList.add("autofilled"); inp.dataset.auto = "1"; } else { inp.classList.remove("autofilled"); delete inp.dataset.auto; }
+  };
+  pIn.placeholder = "ชื่อ-สกุล";
+  const occ = sel.value ? regBedOccupant(sel.value) : null;
+  if(occ){ setVal(pIn, "patient", String(occ.name || "").trim(), true); setVal(dIn, "diag", regDx(occ), true); return; }   // คนที่อยู่เตียงนี้ตอนนี้
+  const hit = sel.value ? findLastPatientForBed(sel.value, day, shift) : null;
+  if(hit && isDischargedName(hit.patient)){
+    setVal(pIn, "patient", "", false); setVal(dIn, "diag", "", false);
+    pIn.placeholder = "เดิม: " + hit.patient + " (จำหน่ายแล้ว)";
+  } else if(hit){
+    setVal(pIn, "patient", hit.patient, true); setVal(dIn, "diag", hit.diag, true);
+  } else if(pIn.dataset.auto === "1"){
+    setVal(pIn, "patient", "", false); setVal(dIn, "diag", "", false);   // เปลี่ยนเตียงจากค่าที่เติมไว้ แต่เตียงใหม่ไม่มีประวัติ
+  }
+}
+
+/* ---------------- jump-to-day (aware of active tab) ---------------- */
+function renderJumpSelect(){
+  const sel = document.getElementById("jump-select");
+  let html = "";
+  for(let d=1; d<=NUM_DAYS; d++) html += `<option value="${d}">วันที่ ${d}</option>`;
+  sel.innerHTML = html;
+}
+document.getElementById("jump-select").addEventListener("change", (e)=>{
+  const prefix = currentTab === "work" ? "workday-" : "assignday-";
+  const el = document.getElementById(prefix + e.target.value);
+  if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+});
+
+/* ---------------- tab 3: summary ---------------- */
+function computeInchargeCounts(){
+  const counts = {};
+  ROSTER_RN.forEach(name=> counts[name] = { "ดึก":0,"เช้า":0,"บ่าย":0, total:0 });
+  for(let d=1; d<=NUM_DAYS; d++){
+    SHIFTS.forEach(sh=>{
+      const name = assign[d][sh].groups[0].name;
+      if(name && counts[name]){ counts[name][sh]++; counts[name].total++; }
+    });
+  }
+  return counts;
+}
+function computeP4pPoints(c){
+  return (c["เช้า"] * RATE_MORNING) + ((c["ดึก"] + c["บ่าย"]) * RATE_OTHER);
+}
+function renderSummary(){
+  const el = document.getElementById("summary-content");
+  const counts = computeInchargeCounts();
+  const nStaff = ROSTER_RN.length || 1;
+  const avgPerShift = NUM_DAYS / nStaff;
+  const maxCount = Math.max(1, ...Object.values(counts).flatMap(c=>SHIFTS.map(sh=>c[sh])));
+
+  let html = `<div class="avg-line">ค่าเฉลี่ยเป้าหมาย ≈ <b>${avgPerShift.toFixed(1)}</b> ครั้ง/เวร/คน (จาก ${NUM_DAYS} วัน ÷ ${nStaff} คน) — คะแนน P4P: เช้า ${RATE_MORNING} / บ่าย-ดึก ${RATE_OTHER} แต้มต่อครั้ง</div>`;
+  html += `<table class="summary-table"><tr><th>ชื่อ</th>`;
+  SHIFTS.forEach(sh=> html += `<th style="color:${SHIFT_COLOR[sh]}">${sh}</th>`);
+  html += `<th>รวม</th><th>แต้ม P4P</th></tr>`;
+
+  ROSTER_RN.forEach(name=>{
+    const c = counts[name];
+    html += `<tr><td>${name}</td>`;
+    SHIFTS.forEach(sh=>{
+      const v = c[sh];
+      const diff = v - avgPerShift;
+      let tagClass = "tag-ok";
+      if(diff >= 1) tagClass = "tag-over";
+      else if(diff <= -1) tagClass = "tag-under";
+      const pct = Math.round((v/maxCount)*100);
+      html += `<td><div class="bar-wrap">
+        <span class="count-num ${tagClass}">${v}</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${SHIFT_COLOR[sh]}"></div></div>
+      </div></td>`;
+    });
+    const points = computeP4pPoints(c);
+    html += `<td style="font-weight:700">${c.total}</td><td style="font-weight:700;color:var(--navy-deep)">${points.toFixed(1)}</td></tr>`;
+  });
+  html += `</table>`;
+  html += `<button class="export-btn" id="btn-export-summary">📤 Export สรุปความถี่ + ประวัติแลกเวร (.xlsx)</button>`;
+  html += `<button class="export-btn" id="btn-export-p4p" style="background:var(--ok);">📤 Export P4P รายคน + สรุป (.xlsx)</button>`;
+  el.innerHTML = html;
+
+  document.getElementById("btn-export-summary").addEventListener("click", exportCombinedXlsx);
+  document.getElementById("btn-export-p4p").addEventListener("click", exportP4pWorkbook);
+}
+
+/* ---------------- P4P workbook export: 1 sheet per RN + สรุป, matches real template structure ---------------- */
+function sanitizeSheetName(name, usedNames){
+  let clean = (name || "ไม่ระบุชื่อ").replace(/[:\\\/\?\*\[\]]/g, "").trim();
+  if(clean.length > 28) clean = clean.slice(0, 28);
+  let finalName = clean;
+  let n = 2;
+  while(usedNames.has(finalName)){
+    finalName = `${clean.slice(0, 25)}(${n})`;
+    n++;
+  }
+  usedNames.add(finalName);
+  return finalName;
+}
+
+function colLetter(n){ // 0-indexed -> Excel column letter
+  let s=""; n++;
+  while(n>0){ let m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+  return s;
+}
+
+// Exact replica of a real RN sheet from p4p_RCU.xlsx (rows/columns verified against the actual file).
+// Only the 2 Incharge rows (6,7) are filled from real data; every other cell matches the template
+// but is left blank where this tool has no data — same shape as the original, nothing invented.
+function buildExactPersonSheet(name, counts){
+  const monthName = getMonthLabel();
+  const ws = {};
+  const set = (addr, val)=>{ ws[addr] = { v: val, t: (typeof val === "number" ? "n" : "s") }; };
+
+  const title = "แบบฟอร์มบันทึกข้อมูลการปฏิบัติงานแบบรายกิจกรรม (Activity based) กลุ่มภารกิจด้านการพยาบาล โรงพยาบาลมหาราชนครราชสีมา";
+  set("A1", title); set("K1", title);
+
+  set("A2", "  ชื่อ-สกุล                                                                                       ตำแหน่ง  พยาบาลวิชาชีพ                     ");
+  set("C2", `${name} ตำแหน่งพยาบาลวิชาชีพ`);
+  set("D2", "วุฒิ  นักวิชาการ ป.ตรี ");
+  set("F2", "หอผู้ป่วย RCU                                          ");
+  set("I2", `ประจำเดือน ${monthName}`);
+  set("K2", "ชื่อ-สกุล                                                                                                          ");
+  set("M2", `${name} ตำแหน่งพยาบาลวิชาชีพ`);
+
+  set("A3","รหัส"); set("B3","ลำดับ"); set("C3","ภาระงาน"); set("D3","หน่วยนับปริมาณงาน");
+  set("E3","เวลาเฉลี่ยต่อ1 หน่วย(นาที)"); set("F3","จำนวนครั้งที่ทำ"); set("G3","ทักษะวิชาชีพ/ความซับซ้อน/ความเสี่ยง(เท่า)");
+  set("H3","คะแนนรวม(เวลาเฉลี่ยxน้ำหนักxปริมาณ)"); set("I3","วุฒิอ้างอิงนักวิชาการ ป.ตรี(0.14เท่า)"); set("J3","รวมแต้มคะแนนที่ได้(ตามวุฒิอ้างอิง)");
+  set("K3","รหัส"); set("L3","ลำดับ"); set("M3","ภาระงาน");
+  for(let d=1; d<=31; d++) set(colLetter(13+d)+"3", d); // N3.. = day numbers 1-31 (matches template; left unfilled below, same as the original file)
+
+  set("A5","งานบริหาร "); set("K5","งานบริหาร ");
+
+  const c = counts[name] || { "เช้า":0, "ดึก":0, "บ่าย":0, total:0 };
+  const countMorning = c["เช้า"];
+  const countOther = c["ดึก"] + c["บ่าย"];
+  const timeM=180, skillM=1.5, eduM=0.14;
+  const timeO=120, skillO=1.5, eduO=0.14;
+  const hM = timeM*countMorning*skillM, jM = Number((hM*eduM).toFixed(2));
+  const hO = timeO*countOther*skillO, jO = Number((hO*eduO).toFixed(2));
+
+  set("B6",1); set("C6","Incharge (ครั้ง) เวรเช้า IPD / ER : ward ICU / สามัญที่มีผู้ป่วย >20 คนขึ้นไป");
+  set("D6","ครั้ง"); set("E6",timeM); set("F6",countMorning); set("G6",skillM); set("H6",hM); set("I6",eduM); set("J6",jM);
+  set("L6",1); set("M6","Incharge (ครั้ง) เวรเช้า IPD / ER");
+  // mark the exact days this person covered เช้า Incharge — data we do have, matching the day columns already in the template
+  for(let d=1; d<=NUM_DAYS; d++){
+    if(assign[d]["เช้า"].groups[0].name === name) set(colLetter(13+d)+"6", 1);
+  }
+
+  set("B7",2); set("C7","Incharge (ครั้ง) เวรบ่าย/ดึก IPD/ER  : ward ICU / สามัญที่มีผู้ป่วย > 20 คนขึ้นไป");
+  set("D7","ครั้ง"); set("E7",timeO); set("F7",countOther); set("G7",skillO); set("H7",hO); set("I7",eduO); set("J7",jO);
+  set("L7",2); set("M7","Incharge (ครั้ง) เวรบ่าย/ดึก IPD/ER");
+  for(let d=1; d<=NUM_DAYS; d++){
+    const nightIsMe = assign[d]["ดึก"].groups[0].name === name;
+    const afternoonIsMe = assign[d]["บ่าย"].groups[0].name === name;
+    if(nightIsMe || afternoonIsMe) set(colLetter(13+d)+"7", 1);
+  }
+
+  set("B8",3); set("C8","วิเคราะห์ และสรุปรายงานตัวชี้วัดประจำเดือนในงานที่ได้รับมอบหมาย (2ชม./ครั้ง)");
+  set("D8","ครั้ง"); set("E8",120); set("F8",0); set("G8",1.5); set("H8",0); set("I8",0.14); set("J8",0);
+  set("L8",3); set("M8","วิเคราะห์ และสรุปรายงานตัวชี้วัดประจำเดือนในงานที่ได้รับมอบหมาย (3ชม./ครั้ง)");
+
+  const j9 = Number((jM+jO).toFixed(2));
+  set("C9","รวมแต้มภาระงานด้านบริหาร"); set("J9", j9);
+
+  set("A10","งานวิชาการ"); set("K10","งานวิชาการ");
+
+  const academic = [
+    ["ว4",  "ประชุมวิชาการ/ศึกษาดูงานนอกรพ. /ประชุมวิชาการภายในรพ (จำนวนชม.จริง/ครั้ง)", "ชม.", 60, 0.8,
+             "ประชุมวิชาการ/ศึกษาดูงานนอกรพ. /ประชุมวิชาการภายในรพ/ประชุมward (จำนวนชม.จริง/ครั้ง)"],
+    ["ว6",  "นำเสนอผลงาน(Paper,Poster)/วิทยากรบรรยายระดับรพ.ขึ้นไป รวมCQI,Innovation", "เรื่อง", 60, 3, null],
+    ["ว14", "ทำวิจัย (ชื่อแรก) 6ชม./เรื่องที่มีอยู่ในเดือน", "เรื่อง", 360, 10, null],
+    ["ว15", "ทำวิจัย (ชื่อที่ 2) 6ชม./เรื่องที่มีอยู่ในเดือน", "เรื่อง", 360, 3, null],
+    ["ว16", "ทำวิจัย (ชื่อที่ 3ขึ้นไป) 6ชม./เรื่องที่มีอยู่ในเดือน", "เรื่อง", 360, 2, null],
+    ["ว17", "ตีพิมพ์ผลงานวิจัยในวารสารในประเทศ (ชื่อแรก)6ชม./เรื่องที่พิมพ์ในเดือน", "เรื่อง", 360, 10, null],
+    ["ว18", "ตีพิมพ์ผลงานวิจัยในวารสารในประเทศ (ชื่อที่ 2)6ชม./เรื่องที่พิมพ์ในเดือน", "เรื่อง", 360, 3, null],
+    ["ว19", "ตีพิมพ์ผลงานวิจัยในวารสารในประเทศ (ชื่อที่ 3ขึ้นไป)6ชม./เรื่องที่พิมพ์ในเดือน", "เรื่อง", 360, 2, null],
+    ["ว26", "ประเมินตรวจ อวช.พยาบาล (1คน/1ชม.)", "คน", 60, 3, null],
+    ["ว34", "สอนงานบุคลากรตามที่ได้รับมอบหมาย (ไม่เกิน1เรื่อง/วัน)", "เรื่อง", 60, 1.5, null],
+    ["ว55", "งานกิจกรรมของรพ./งานบำรุงศิลปวัฒนธรรม จำนวนชม.จริง (หัวหน้าพยาบาลมอบหมาย)", "ชม.", 60, 1, null],
+    [null,  "เป็นผู้นำทีม Nursing Round / Clinical teaching / Nursing conference / CQI", "ครั้ง", 60, 2, null],
+    [null,  "เข้าร่วมกิจกรรม Nsg round /Nsg conference/Clinical teaching/12กิจกรรมทบทวน / CQI", "ครั้ง", 30, 1.5, null],
+    [null,  "เป็นผู้รับผิดชอบจัดโครงการอบรมต่างๆทั้งภายในและภายนอกรพ.(แนบโครงการ)", "เรื่อง", 420, 2, null],
+  ];
+  academic.forEach((item, i)=>{
+    const r = 11 + i;
+    const [code, text, unit, time, skill, mText] = item;
+    if(code){ set("A"+r, code); set("K"+r, code); }
+    set("B"+r, i+1); set("C"+r, text); set("D"+r, unit); set("E"+r, time); set("F"+r, 0); set("G"+r, skill); set("H"+r, 0); set("I"+r, 0.14); set("J"+r, 0);
+    set("L"+r, i+1); set("M"+r, mText || text);
+  });
+
+  set("C25","รวมแต้มภาระงานด้านวิชาการ"); set("J25", 0);
+  set("C26","รวมแต้มบริการ RN / ลงจำนวนวันทำงานจริง (ช่อง D26)");
+  set("D27","บริการ"); set("E27","บริหาร"); set("F27","วิชาการ"); set("G27","รวม"); set("H27","คะแนนประกัน"); set("I27","คะแนนส่วนต่าง");
+  set("C28","คะแนนการปฏิบัติงาน RN"); set("E28", j9); set("F28", 0);
+  set("E29", j9); set("F29", 0); set("H29", 1200);
+  set("F30","ลงชื่อ…………………………………………………………………………");
+  set("F31", `${name} ตำแหน่งพยาบาลวิชาชีพ`);
+
+  ws["!ref"] = `A1:${colLetter(13+31)}31`;
+  const cols = [{wch:6},{wch:5},{wch:48},{wch:9},{wch:10},{wch:9},{wch:10},{wch:10},{wch:9},{wch:10}];
+  for(let d=1; d<=31; d++) cols.push({wch:4});
+  ws["!cols"] = cols;
+
+  return { ws, totalPoints: j9 };
+}
+
+function buildP4pSummaryAoa(counts, personTotals){
+  const rows = [];
+  rows.push([`สรุปรายงานประจำเดือน ${getMonthLabel()} — หอผู้ป่วยหนักระบบทางเดินหายใจ (RCU)`]);
+  rows.push([]);
+  rows.push(["รหัส","รายชื่อ","ตำแหน่ง","บริการ","บริหาร (Incharge)","วิชาการ","รวมแต้ม","แต้มประกัน","คะแนนส่วนต่าง"]);
+  ROSTER_RN.forEach((name, i)=>{
+    const points = personTotals[name] || 0;
+    rows.push([`RN${i+1}`, name, "พยาบาลวิชาชีพ", "", points, "", "", 1200, ""]);
+  });
+  rows.push([]);
+  rows.push(["หมายเหตุ: \"บริการ\" \"วิชาการ\" \"รวมแต้ม\" \"คะแนนส่วนต่าง\" เว้นว่างไว้ — ไม่มีข้อมูลในเครื่องมือนี้ กรอกเองแล้วผลรวมจะครบ"]);
+  return rows;
+}
+
+function exportP4pWorkbook(){
+  const counts = computeInchargeCounts();
+  const wb = XLSX.utils.book_new();
+  const usedNames = new Set();
+  const personTotals = {};
+
+  ROSTER_RN.forEach(name=>{
+    const { ws, totalPoints } = buildExactPersonSheet(name, counts);
+    personTotals[name] = Number(totalPoints.toFixed(2));
+    XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(name, usedNames));
+  });
+
+  const summaryRows = buildP4pSummaryAoa(counts, personTotals);
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary["!cols"] = [{wch:8},{wch:22},{wch:18},{wch:10},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12}];
+  // put summary first, matching the request to open and see the overview immediately
+  XLSX.utils.book_append_sheet(wb, wsSummary, "สรุป");
+  wb.SheetNames.unshift(wb.SheetNames.pop());
+
+  XLSX.writeFile(wb, `P4P-RCU-${getMonthLabel()}.xlsx`);
+}
+
+/* ---------------- combined export: สรุปความถี่ (Sheet1) + ประวัติแลกเวร (Sheet2) in one .xlsx ---------------- */
+function exportCombinedXlsx(){
+  const counts = computeInchargeCounts();
+  const summaryRows = [["ชื่อ","ดึก","เช้า","บ่าย","รวม",`แต้ม P4P (เช้า×${RATE_MORNING}, บ่าย/ดึก×${RATE_OTHER})`]];
+  ROSTER_RN.forEach(name=>{
+    const c = counts[name];
+    summaryRows.push([name, c["ดึก"], c["เช้า"], c["บ่าย"], c.total, Number(computeP4pPoints(c).toFixed(1))]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1["!cols"] = [{wch:20},{wch:8},{wch:8},{wch:8},{wch:8},{wch:22}];
+
+  const historyRows = [["วัน","เวร","ตำแหน่ง","เปลี่ยนจาก","เปลี่ยนเป็น","เวลาที่บันทึก"]];
+  changeLog.forEach(c=> historyRows.push([c.day, c.shift, ROLE_LABELS[c.role], c.from, c.to, c.time]));
+  const ws2 = XLSX.utils.aoa_to_sheet(historyRows);
+  ws2["!cols"] = [{wch:6},{wch:8},{wch:12},{wch:18},{wch:18},{wch:18}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, "สรุปความถี่");
+  XLSX.utils.book_append_sheet(wb, ws2, "ประวัติแลกเวร");
+  XLSX.writeFile(wb, `RCU-สรุปความถี่-ประวัติแลกเวร-${getMonthLabel()}.xlsx`);
+}
+
+/* ---------------- tab: ประวัติแลกเวร ---------------- */
+function renderHistory(){
+  const el = document.getElementById("history-content");
+  if(changeLog.length === 0){
+    el.innerHTML = `<div class="history-empty">ยังไม่มีการแลกเวร — เมื่อกด "🔁 เปลี่ยนเวร" แล้วมีชื่อเปลี่ยนจริง จะขึ้นที่นี่</div>`;
+    return;
+  }
+  let html = `<table class="history-table"><tr><th>วัน/เวร</th><th>ตำแหน่ง</th><th>เปลี่ยนจาก → เป็น</th><th>เวลาที่บันทึก</th></tr>`;
+  for(let i = changeLog.length - 1; i >= 0; i--){
+    const c = changeLog[i];
+    html += `<tr>
+      <td>วัน ${c.day}<br><span style="color:${SHIFT_COLOR[c.shift]}">เวร${c.shift}</span></td>
+      <td>${ROLE_LABELS[c.role]}</td>
+      <td><span class="swap-old">${c.from}</span><span class="swap-arrow">→</span><span class="swap-new">${c.to}</span></td>
+      <td>${c.time}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+  html += `<button class="export-btn" id="btn-export-history">📤 Export สรุปความถี่ + ประวัติแลกเวร (.xlsx)</button>`;
+  el.innerHTML = html;
+
+  document.getElementById("btn-export-history").addEventListener("click", exportCombinedXlsx);
+}
+
+/* ---------------- generate / tabs ---------------- */
+function generateAll(){
+  ROSTER_RN = parseRoster(document.getElementById("roster-rn").value);
+  ROSTER_NA = parseRoster(document.getElementById("roster-na").value);
+  ROSTER_WK = parseRoster(document.getElementById("roster-wk").value);
+  NUM_DAYS = parseInt(document.getElementById("num-days").value) || 31;
+  RATE_MORNING = parseFloat(document.getElementById("rate-morning").value) || 37.8;
+  RATE_OTHER = parseFloat(document.getElementById("rate-other").value) || 25.2;
+  document.getElementById("work-day-input").max = NUM_DAYS;
+  readDutySettings();
+  ensureAssignDays();
+  renderJumpSelect();
+  renderAssignDays();
+  renderWorkDay();
+  renderSummary();
+}
+
+document.getElementById("work-day-input").addEventListener("input", renderWorkDay);
+document.getElementById("btn-generate").addEventListener("click", ()=>{
+  generateAll();
+  document.querySelector("details.settings").removeAttribute("open");
+});
+document.querySelectorAll("nav.tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll("section.panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById(btn.dataset.tab).classList.add("active");
+    currentTab = btn.dataset.tab;
+    try{ localStorage.setItem("rcu_assign_last_tab", currentTab); }catch(e){}   // จำแท็บล่าสุด
+    if(currentTab === "work" && Date.now() - regLoadedAt > 60000) refreshRegPatients();
+    document.getElementById("jumpbar").style.display = (currentTab==="assign") ? "flex" : "none";
+    if(currentTab === "work") renderWorkDay();
+    if(currentTab === "summary") renderSummary();
+    if(currentTab === "history") renderHistory();
+  });
+});
+
+/* ---------------- PDF export (direct download, no browser print dialog) ---------------- */
+function escapeHtml(s){
+  return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+// renders a hidden report container to canvas (keeps Thai text correct) then builds a multi-page PDF from it
+async function exportReportAsPdf(containerId, orientation, filename){
+  const el = document.getElementById(containerId);
+  const widthPx = orientation === "landscape" ? 1100 : 780;
+  el.style.cssText = `display:block; position:fixed; left:0; top:0; z-index:-1; background:#fff; width:${widthPx}px; padding:16px;`;
+  await new Promise(r => setTimeout(r, 60)); // let the browser lay it out before capturing
+  const canvas = await html2canvas(el, { scale:2, backgroundColor:"#ffffff" });
+  el.style.cssText = ""; // back to normal (hidden again via .print-report class)
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF(orientation, "mm", "a4");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+
+  let heightLeft = imgHeight;
+  let position = 0;
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  while(heightLeft > 0){
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  pdf.save(filename);
+}
+
+function buildAssignReportHtml(){
+  const monthName = getMonthLabel();
+  let html = `<div class="report-title">ตารางมอบหมาย Incharge / Member — ${monthName}</div>`;
+  html += `<table class="report-table"><tr><th>วัน</th><th>เวร</th><th>Incharge</th><th>Member1</th><th>Member2</th><th>Member3</th><th>แม่บ้าน</th></tr>`;
+  for(let d=1; d<=NUM_DAYS; d++){
+    SHIFTS.forEach(shift=>{
+      const rec = assign[d][shift];
+      html += `<tr><td>${d}</td><td>${shift}</td>`;
+      rec.groups.forEach(g=>{
+        const chg = rec.swappedRoles && rec.swappedRoles[g.role];
+        const val = escapeHtml(g.name) || "-";
+        html += `<td>${chg ? `<span class="chg">${val}</span>` : val}</td>`;
+      });
+      html += `<td>${fixedAppliesTo("housekeeper", shift) ? (escapeHtml(rec.housekeeper.name) || "-") : "-"}</td></tr>`;
+    });
+  }
+  html += `</table>`;
+  document.getElementById("assign-print-report").innerHTML = html;
+}
+
+function buildWorkReportHtml(day){
+  const monthName = getMonthLabel();
+  let html = `<div class="report-title">ใบมอบหมายงาน RCU 1 — วันที่ ${day} เดือน ${monthName}</div>`;
+  SHIFTS.forEach(shift=>{
+    const rec = assign[day][shift];
+    html += `<div class="report-shift-title">เวร${shift}</div>`;
+    html += `<table class="report-table"><tr><th>พยาบาล</th><th>ตำแหน่ง</th><th>เตียง</th><th>ชื่อผู้ป่วย</th><th>Dx</th><th>ประเภท</th><th>เชื้อ</th><th>พัก</th></tr>`;
+    rec.groups.forEach(g=>{
+      const chg = rec.swappedRoles && rec.swappedRoles[g.role];
+      const nameVal = escapeHtml(g.name) || "-";
+      const nameCell = chg ? `<span class="chg">${nameVal}</span>` : nameVal;
+      const brk = DEFAULT_BREAK[g.role] || "";
+      g.beds.forEach((bed, bi)=>{
+        html += `<tr>`;
+        if(bi===0){
+          html += `<td rowspan="2">${nameCell}</td><td rowspan="2">${ROLE_LABELS[g.role]}</td>`;
+        }
+        const infectShort = bed.infect === "ติดเชื้อ" ? "ติด" : (bed.infect === "ไม่ติดเชื้อ" ? "ไม่ติด" : "-");
+        html += `<td>${escapeHtml(bed.bed) || "-"}</td><td>${escapeHtml(bed.patient) || "-"}</td><td>${escapeHtml(bed.diag) || "-"}</td><td>${escapeHtml(bed.ptype) || "-"}</td><td>${infectShort}</td>`;
+        if(bi===0) html += `<td rowspan="2">${brk}</td>`;
+        html += `</tr>`;
+      });
+    });
+    if(shift === "เช้า"){
+      html += `<tr><td>${escapeHtml(rec.housekeeper.name) || "-"}</td><td>แม่บ้าน</td><td colspan="4"></td><td>${DEFAULT_BREAK.housekeeper}</td></tr>`;
+      html += `<tr><td>${escapeHtml(rec.clerk.name) || "-"}</td><td>เสมียน</td><td colspan="4"></td><td>${DEFAULT_BREAK.clerk}</td></tr>`;
+    }
+    html += `<tr><td>${escapeHtml(rec.na.name) || "-"}</td><td>NA</td><td colspan="4"></td><td>${DEFAULT_BREAK.na}</td></tr>`;
+    html += `<tr><td>${escapeHtml(rec.worker.name) || "-"}</td><td>คนงาน</td><td colspan="4"></td><td>${DEFAULT_BREAK.worker}</td></tr>`;
+    html += `</table>`;
+  });
+  document.getElementById("work-print-report").innerHTML = html;
+}
+
+document.getElementById("btn-print-assign").addEventListener("click", async (e)=>{
+  const btn = e.currentTarget;
+  const original = btn.textContent;
+  btn.textContent = "⏳ กำลังสร้าง PDF...";
+  btn.disabled = true;
+  buildAssignReportHtml();
+  await exportReportAsPdf("assign-print-report", "portrait", `Assign-Incharge-${getMonthLabel()}.pdf`);
+  btn.textContent = original;
+  btn.disabled = false;
+});
+
+// ย่อ "แผ่นรายงาน" ให้พอดีความกว้างจอ โดยคงเลย์เอาต์เท่าไฟล์ PDF
+let prevFit = true;      // true = ย่อพอดีจอ, false = ขนาดจริง
+function fitPreviewSheet(){
+  const body = document.getElementById("prev-body");
+  const sheet = body.querySelector(".prev-sheet");
+  if(!sheet) return;
+  const natural = sheet.dataset.w ? parseInt(sheet.dataset.w) : sheet.offsetWidth;
+  const availW = body.clientWidth  - 12;               // เว้นขอบซ้ายขวา
+  const availH = body.clientHeight - 12;               // เว้นขอบบนล่าง
+  if(availW <= 0 || availH <= 0) return;               // พรีวิวปิดอยู่ ไม่ต้องคำนวณ
+  const naturalH = sheet.offsetHeight;                 // ความสูงจริง (ไม่ถูกกระทบจาก transform)
+  const k = prevFit ? Math.max(0.12, Math.min(1, availW / natural, availH / naturalH)) : 1;
+  sheet.style.transform = `scale(${k})`;
+  sheet.style.transformOrigin = "top left";
+  // transform ไม่ลดพื้นที่ที่ใช้จริง จึงต้องกำหนดขนาดกล่องห่อให้ตรงกับที่ย่อแล้ว
+  const wrap = sheet.parentElement;
+  wrap.style.width  = (natural * k) + "px";
+  wrap.style.height = (naturalH * k) + "px";
+}
+window.addEventListener("resize", fitPreviewSheet);
+
+// แสดงตัวอย่างก่อน แล้วค่อยให้กดดาวน์โหลด
+document.getElementById("btn-print-work").addEventListener("click", ()=>{
+  buildWorkReportHtml(currentWorkDay);
+  document.getElementById("prev-title").textContent = `ตัวอย่าง — มอบหมายงาน วันที่ ${currentWorkDay}`;
+  document.getElementById("prev-body").innerHTML =
+    `<div class="prev-fit"><div class="prev-sheet" data-w="1100">${document.getElementById("work-print-report").innerHTML}</div></div>`;
+  document.getElementById("prev-overlay").style.display = "flex";
+  prevFit = true;
+  document.getElementById("prev-zoom").textContent = "🔍 ขยาย";
+  fitPreviewSheet();
+});
+document.getElementById("prev-zoom").addEventListener("click", ()=>{
+  prevFit = !prevFit;
+  document.getElementById("prev-zoom").textContent = prevFit ? "🔍 ขยาย" : "↔ พอดีจอ";
+  fitPreviewSheet();
+});
+document.getElementById("prev-close").addEventListener("click", ()=>{
+  document.getElementById("prev-overlay").style.display = "none";
+});
+document.getElementById("prev-download").addEventListener("click", async ()=>{
+  const btn = document.getElementById("prev-download");
+  const orig = btn.textContent;
+  btn.textContent = "⏳ กำลังสร้าง PDF..."; btn.disabled = true;
+  try{
+    buildWorkReportHtml(currentWorkDay);
+    await exportReportAsPdf("work-print-report", "landscape", `มอบหมายงาน-วัน${currentWorkDay}.pdf`);
+  }finally{
+    btn.textContent = orig; btn.disabled = false;
+  }
+});
+
+initMonthSelect();
+renderDutySettings();
+generateAll();
+
+/* ================= เชื่อมข้อมูลส่วนกลาง (Google Sheets) ================= */
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxw60qoCGFEs6vtibn0nGq2uvTOp6yxbH9HIc2BEdNGeBQi-a7-iN_lfdjFWFnoHY9f/exec";
+const CLOUD_KIND = "assign";
+
+/* ---- ต้องผ่านหน้าใส่รหัสก่อน ---- */
+const AUTH_KEY = "rcu_auth_pw";
+const AUTH_PW = localStorage.getItem(AUTH_KEY);
+if(!AUTH_PW){ location.replace("index.html"); }
+function authed(){ return !!AUTH_PW; }
+
+
+// ข้อมูลหนึ่งเดือน = หนึ่งรายการ เช่น 2569-10
+function monthKey(){
+  const m = String(parseInt(document.getElementById("month-select").value) + 1).padStart(2,"0");
+  return `${document.getElementById("year-input").value}-${m}`;
+}
+// ชีทแปลงข้อความแบบ "2569-10" เป็นวันที่เอง ทำให้หาแถวเดิมไม่เจอตอนโหลดกลับ จึงเติมตัว M นำหน้า (ชีทจะเก็บเป็นข้อความ)
+function keyFor(yBE, mIdx){ return `M${yBE}-${String(mIdx+1).padStart(2,"0")}`; }
+function legacyKeyFor(yBE, mIdx){ return `${yBE}-${String(mIdx+1).padStart(2,"0")}`; }   // รหัสแบบเดิม (อ่านอย่างเดียว)
+function labelOfKey(key){ const [yy, mm] = String(key).replace(/^[^0-9]+/, "").split("-"); return `${MONTH_NAMES[parseInt(mm)-1]} ${yy}`; }
+function daysInMonthBE(yBE, mIdx){ return new Date(yBE - 543, mIdx + 1, 0).getDate(); }
+function isoOf(yBE, mIdx, d){ return `${yBE-543}-${String(mIdx+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+function setSync(msg, cls){
+  // ป้ายสถานะสั้นๆ แบบเดียวกับหน้าลงทะเบียน ข้อความเต็มเก็บไว้ใน title (แตะป้ายแดงเพื่อดู)
+  const el = document.getElementById("sync-status");
+  let label, color;
+  if(cls === "ok"){ label = "☁️ ซิงค์แล้ว"; color = "#00e676"; }
+  else if(cls === "busy"){
+    if(/บันทึก/.test(msg)){ label = "⏳ กำลังบันทึก..."; color = "#ffd600"; }
+    else { label = "⏳ กำลังโหลด..."; color = "#00d4ff"; }
+  }
+  else if(cls === "bad"){
+    color = "#ff6b6b";
+    if(/เสียหาย/.test(msg)) label = "⚠️ ข้อมูลเสีย แตะเพื่อแก้";
+    else if(/โหลด/.test(msg) && /ไม่สำเร็จ|ไม่ได้/.test(msg) && !/ยังไม่ขึ้นส่วนกลาง/.test(msg)) label = "⚠️ โหลดไม่ได้ แตะดู";
+    else label = "⚠️ ซิงค์ไม่ได้ แตะดู";
+  }
+  else { label = "⏳ กำลังโหลด..."; color = "#00d4ff"; }
+  el.textContent = label;
+  el.title = msg;
+  el.className = cls || "";
+  el.style.color = color;
+}
+
+/* เดือนที่ข้อมูลบนหน้าจอเป็นของเดือนนั้น: บันทึกลงเดือนนี้เสมอ ไม่ว่าตัวเลือกเดือนจะเปลี่ยนไปแล้วหรือไม่ */
+let loadedKey = "";
+/* โหลดเดือนนี้จากส่วนกลางสำเร็จหรือยัง ถ้ายัง = ห้ามบันทึก (กันเขียนทับข้อมูลจริงด้วยตารางว่าง) */
+let loadOk = false;
+let loadingNow = false;
+let lastLoadError = null;
+let switchSeq = 0;
+let cloudTimer = null, cloudDirty = false;
+
+
+/* ---- บีบอัดข้อมูลก่อนเก็บ: เซลล์ Google Sheets เก็บได้ไม่เกิน 50,000 ตัวอักษร แต่ข้อมูลหนึ่งเดือนดิบๆ เกิน 70,000 ---- */
+const CELL_LIMIT = 45000;                                  // เผื่อไว้ต่ำกว่าเพดานจริง 50,000
+function loadPako(){
+  return new Promise((res, rej)=>{
+    if(window.pako) return res(window.pako);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
+    s.onload = ()=> window.pako ? res(window.pako) : rej(new Error("โหลดตัวบีบอัดไม่สำเร็จ"));
+    s.onerror = ()=> rej(new Error("โหลดตัวบีบอัดไม่สำเร็จ"));
+    document.head.appendChild(s);
+  });
+}
+async function gzipBytes(str){
+  if(typeof CompressionStream !== "undefined"){
+    const cs = new CompressionStream("gzip"), wr = cs.writable.getWriter();
+    wr.write(new TextEncoder().encode(str)); wr.close();
+    return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  }
+  const pako = await loadPako();                           // เบราว์เซอร์เก่า
+  return pako.gzip(str);
+}
+async function gunzipText(bytes){
+  if(typeof DecompressionStream !== "undefined"){
+    const ds = new DecompressionStream("gzip"), wr = ds.writable.getWriter();
+    wr.write(bytes); wr.close();
+    return await new Response(ds.readable).text();
+  }
+  const pako = await loadPako();
+  return pako.ungzip(bytes, { to:"string" });
+}
+function bytesToB64(bytes){
+  let bin = "";
+  for(let i=0; i<bytes.length; i+=0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+0x8000));
+  return btoa(bin);
+}
+function b64ToBytes(b64){
+  const bin = atob(b64), out = new Uint8Array(bin.length);
+  for(let i=0; i<bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function packData(obj){ return { z: "gz1:" + bytesToB64(await gzipBytes(JSON.stringify(obj))) }; }
+async function unpackData(d){
+  if(d && typeof d.z === "string" && d.z.indexOf("gz1:") === 0)
+    return JSON.parse(await gunzipText(b64ToBytes(d.z.slice(4))));
+  return d;                                                // ข้อมูลรุ่นเก่าที่ยังไม่บีบอัด
+}
+
+function applyLoadedMonth(d){
+  assign = d.assign;
+  changeLog = d.changeLog || [];
+  if(d.numDays) document.getElementById("num-days").value = d.numDays;
+  if(d.rosterRN) document.getElementById("roster-rn").value = d.rosterRN;
+  if(d.rosterNA) document.getElementById("roster-na").value = d.rosterNA;
+  if(d.rosterWK) document.getElementById("roster-wk").value = d.rosterWK;
+  ROSTER_RN = parseRoster(document.getElementById("roster-rn").value);
+  ROSTER_NA = parseRoster(document.getElementById("roster-na").value);
+  ROSTER_WK = parseRoster(document.getElementById("roster-wk").value);
+  NUM_DAYS = parseInt(document.getElementById("num-days").value) || 31;
+  document.getElementById("work-day-input").max = NUM_DAYS;
+  ensureAssignDays();
+  renderJumpSelect(); renderAssignDays(); renderWorkDay(); renderSummary(); renderHistory();
+}
+
+async function loadMonth(key){
+  try{
+    const res = await fetch(`${CLOUD_URL}?kind=${CLOUD_KIND}&date=${key}&pw=${encodeURIComponent(AUTH_PW)}`);
+    const j = await res.json();
+    if(!j.ok){
+      const msg = String(j.error || "โหลดไม่สำเร็จ");
+      // เซิร์ฟเวอร์อ่านข้อมูลของเดือนนี้ไม่ได้เพราะข้อความในชีทถูกตัดกลางคัน (เกินเพดานเซลล์)
+      return { ok:false, error: msg, corrupt: /SyntaxError|JSON/i.test(msg) };
+    }
+    const data = await unpackData(j.data || {});
+    return { ok:true, found:!!(data && data.assign), data };
+  }catch(err){
+    return { ok:false, error: String(err.message || err) };
+  }
+}
+
+/* ===== สำรองในเครื่อง: ทุกครั้งที่แก้ จดลงเครื่องทันที ก่อนส่งขึ้นส่วนกลาง =====
+   ออกจากหน้าเร็วเกินไป หรือส่งขึ้นส่วนกลางไม่สำเร็จ ข้อมูลก็ยังอยู่ และถูกส่งขึ้นให้เองตอนเปิดหน้าอีกครั้ง */
+const LOCAL_KEY = "rcu_assign_local_v1";
+let lastEditT = 0;
+function localAll(){ try{ return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}") || {}; }catch(e){ return {}; } }
+function localPut(key, payload, synced){
+  const all = localAll();
+  all[key] = { t: Date.now(), synced: !!synced, data: payload, base: monthBase };
+  Object.keys(all).sort((a,b)=> all[b].t - all[a].t).slice(4).forEach(k=> delete all[k]);   // เก็บแค่ 4 เดือนล่าสุด
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); return true; }
+  catch(e){
+    try{ const only = {}; only[key] = all[key]; localStorage.setItem(LOCAL_KEY, JSON.stringify(only)); return true; }
+    catch(e2){ return false; }
+  }
+}
+function localMarkSynced(key){
+  const all = localAll();
+  if(all[key]){ all[key].synced = true; try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); }catch(e){} }
+}
+function currentPayload(){
+  return {
+    assign, changeLog,
+    numDays: document.getElementById("num-days").value,
+    rosterRN: document.getElementById("roster-rn").value,
+    rosterNA: document.getElementById("roster-na").value,
+    rosterWK: document.getElementById("roster-wk").value
+  };
+}
+
+/* ===== รวมข้อมูลสามทาง: ช่องที่เครื่องนี้แก้ (ต่างจากฉบับตั้งต้น) ใช้ของเครื่องนี้ ช่องอื่นใช้ของส่วนกลาง ===== */
+let monthBase = null;                 // หน้าตาเดือนนี้ตอนตรงกับส่วนกลางล่าสุด
+let saving = false, saveAgain = false;
+function isObj(v){ return v && typeof v === "object" && !Array.isArray(v); }
+function merge3(base, local, server, key){
+  // ประวัติแลกเวร: รวมรายการจากทุกเครื่อง ไม่มีรายการไหนหาย
+  if(key === "changeLog" && Array.isArray(local) && Array.isArray(server)){
+    const seen = new Set(server.map(x => JSON.stringify(x)));
+    return server.concat(local.filter(x => !seen.has(JSON.stringify(x))));
+  }
+  // รายชื่อพยาบาล/เตียงของแต่ละเวรเป็นชุดความยาวคงที่: รวมทีละตำแหน่ง ไม่ให้ทั้งชุดของเครื่องหนึ่งทับอีกเครื่อง
+  if(Array.isArray(local) && Array.isArray(server) && local.length === server.length && (!Array.isArray(base) || base.length === local.length)){
+    return local.map((_, i)=> merge3(Array.isArray(base) ? base[i] : undefined, local[i], server[i]));
+  }
+  if(isObj(local) && isObj(server)){
+    const out = {};
+    const keys = new Set([...Object.keys(server), ...Object.keys(local), ...(isObj(base) ? Object.keys(base) : [])]);
+    keys.forEach(k=>{ const v = merge3(isObj(base) ? base[k] : undefined, local[k], server[k], k); if(v !== undefined) out[k] = v; });
+    return out;
+  }
+  return JSON.stringify(local) !== JSON.stringify(base) ? local : server;
+}
+// เติมวัน/เวรที่ขาดแบบเดียวกับหน้าจอ เพื่อให้เทียบกับข้อมูลในเครื่องได้ตรง
+function normalizeMonthData(d){
+  const keepA = assign, keepN = NUM_DAYS;
+  try{
+    assign = (d && d.assign) || {};
+    NUM_DAYS = parseInt(d && d.numDays) || NUM_DAYS;
+    ensureAssignDays();
+    return { assign, changeLog: (d && d.changeLog) || [], numDays: d && d.numDays,
+             rosterRN: d && d.rosterRN, rosterNA: d && d.rosterNA, rosterWK: d && d.rosterWK };
+  } finally { assign = keepA; NUM_DAYS = keepN; }
+}
+function hasFocusInData(){
+  const a = document.activeElement;
+  return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest && a.closest("#assign-days, #work-days"));
+}
+
+async function cloudSave(){
+  if(!authed() || !loadedKey || !loadOk) return;
+  if(saving){ saveAgain = true; return; }
+  saving = true;
+  const key = loadedKey;
+  setSync("กำลังบันทึก… (อย่าเพิ่งปิดหน้า)", "busy");
+  try{
+    const snapT = lastEditT;
+    const baseStr = monthBase;
+    const snapStr = JSON.stringify(currentPayload()), snap = JSON.parse(snapStr);
+    // 1) อ่านฉบับล่าสุดจากส่วนกลาง แล้วรวมเฉพาะช่องที่เครื่องนี้แก้
+    const srv = await loadMonth(key);
+    if(!srv.ok) throw new Error(srv.error || "อ่านข้อมูลล่าสุดไม่สำเร็จ");
+    const merged = (srv.found && baseStr) ? merge3(JSON.parse(baseStr), snap, normalizeMonthData(srv.data)) : snap;
+    const mergedStr = JSON.stringify(merged);
+    // 2) ส่ง
+    const packed = await packData(merged);
+    const size = JSON.stringify(packed).length;
+    if(size > CELL_LIMIT) throw new Error(`ข้อมูลเดือนนี้ใหญ่เกินที่เก็บได้ (${size.toLocaleString()} ตัวอักษร)`);
+    const res = await fetch(CLOUD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ pw: AUTH_PW, kind: CLOUD_KIND, date: key, data: packed })
+    });
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "บันทึกไม่สำเร็จ");
+    // 3) อ่านกลับยืนยัน (เทียบกับฉบับที่ส่งจริง ไม่ใช่ของที่อาจถูกแก้ระหว่างส่ง)
+    const back = await loadMonth(key);
+    if(!(back.ok && back.found && JSON.stringify(back.data) === mergedStr)) throw new Error("ส่งแล้วแต่อ่านกลับมาไม่ตรง ข้อมูลยังเก็บไว้ในเครื่อง");
+    if(key !== loadedKey) return;                                   // ผู้ใช้เปลี่ยนเดือนไปแล้ว
+    // 4) ใส่ผลรวมกลับบนจอ (ถ้าพิมพ์เพิ่มระหว่างส่ง วางของใหม่ทับผลรวมอีกที)
+    const curStr = JSON.stringify(currentPayload());
+    const next = curStr !== snapStr ? merge3(snap, JSON.parse(curStr), merged) : merged;
+    if(JSON.stringify(next) !== curStr) applyLoadedMonth(JSON.parse(JSON.stringify(next)));
+    monthBase = mergedStr;
+    if(lastEditT === snapT) localMarkSynced(key);
+    else localPut(key, currentPayload(), false);                     // ยังมีของใหม่ค้าง: จดพร้อมฉบับตั้งต้นใหม่
+    setSync(`✓ บันทึกเรียบร้อย ${labelOfKey(key)} — ทุกเครื่องเห็นแล้ว (${j.at})`, "ok");
+    if(baseStr) setTimeout(()=> recheckMonth(key, baseStr, snapStr, mergedStr), 4000);
+  }catch(err){
+    setSync("⚠ ยังไม่ขึ้นส่วนกลาง: " + (err.message || err) + " — ข้อมูลเก็บในเครื่องแล้ว จะส่งให้อีกครั้งอัตโนมัติ", "bad");
+  }finally{
+    saving = false;
+    if(saveAgain){ saveAgain = false; cloudSave(); }
+  }
+}
+/* สองเครื่องบันทึกเดือนเดียวกันในวินาทีเดียวกัน เครื่องหลังอาจทับเครื่องแรก:
+   ตรวจซ้ำหลังส่ง ถ้าการแก้ของเครื่องนี้หายไป วางกลับเข้าไปใหม่ (ไม่ทับของเครื่องอื่น) */
+async function recheckMonth(key, baseStr, ownStr, savedStr){
+  try{
+    if(key !== loadedKey || !loadOk) return;
+    const srv = await loadMonth(key);
+    if(!srv.ok || !srv.found) return;
+    const srvN = normalizeMonthData(srv.data), srvStr = JSON.stringify(srvN);
+    if(JSON.stringify(srv.data) === savedStr) return;
+    const need = merge3(JSON.parse(baseStr), JSON.parse(ownStr), srvN);
+    if(JSON.stringify(need) === srvStr) return;                      // การแก้ของเรายังอยู่ครบ
+    const cur = currentPayload();
+    applyLoadedMonth(JSON.parse(JSON.stringify(merge3(JSON.parse(ownStr), cur, need))));
+    monthBase = srvStr;                                              // ส่งใหม่เฉพาะส่วนต่างจากส่วนกลางตอนนี้
+    lastEditT = Date.now();
+    localPut(key, currentPayload(), false);
+    cloudSave();
+  }catch(e){}
+}
+/* ทุก 30 วินาที: มีของค้าง -> ส่ง / ไม่มี -> ดึงเดือนนี้จากส่วนกลาง ให้เห็นสิ่งที่เครื่องอื่นเพิ่งบันทึก (ข้ามถ้ากำลังพิมพ์) */
+let REFRESH_MS = 30000;
+async function refreshMonth(){
+  if(!authed() || !loadOk || !loadedKey || saving || cloudDirty || hasFocusInData()) return;
+  const all = localAll(); if(all[loadedKey] && !all[loadedKey].synced){ cloudSave(); return; }
+  try{
+    const key = loadedKey;
+    const srv = await loadMonth(key);
+    if(!srv.ok || !srv.found || key !== loadedKey || cloudDirty || saving || hasFocusInData()) return;
+    const srvN = normalizeMonthData(srv.data), s = JSON.stringify(srvN);
+    if(s === monthBase) return;
+    applyLoadedMonth(JSON.parse(s));
+    monthBase = JSON.stringify(currentPayload());
+    localPut(key, currentPayload(), true);
+  }catch(e){}
+}
+(function syncLoop(){ setTimeout(async ()=>{ try{ await refreshMonth(); } finally { syncLoop(); } }, REFRESH_MS); })();
+
+const NON_DATA_IDS = ["date-pick","work-date-pick","month-select","year-input","jump-select","work-day-input"];
+function scheduleCloudSave(e){
+  const id = e && e.target && e.target.id;
+  if(id && NON_DATA_IDS.indexOf(id) >= 0) return;     // แค่เลือกดู ไม่ใช่การแก้ข้อมูล
+  if(!loadOk){
+    if(!loadingNow) setSync("โหลดข้อมูลเดือนนี้ไม่สำเร็จ จึงยังไม่บันทึก — แตะที่นี่เพื่อลองใหม่", "bad");
+    return;
+  }
+  lastEditT = Date.now();
+  localPut(loadedKey, currentPayload(), false);          // จดลงเครื่องทันที
+  setSync("กำลังบันทึก… (อย่าเพิ่งปิดหน้า)", "busy");      // ให้เห็นทันทีว่าระบบรับรู้การแก้
+  cloudDirty = true;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(()=>{ cloudDirty = false; cloudSave(); }, 600);
+}
+
+function flushOnLeave(){
+  // ส่งแบบปกติ (มีการรวมกับของเครื่องอื่น) ถ้าส่งไม่ทันก่อนหน้าปิด ข้อมูลยังอยู่ในเครื่อง และถูกรวมแล้วส่งตอนเปิดครั้งหน้า
+  if(!cloudDirty) return;
+  clearTimeout(cloudTimer); cloudDirty = false; cloudSave();
+}
+window.addEventListener("pagehide", flushOnLeave);
+document.addEventListener("input", scheduleCloudSave);
+document.addEventListener("change", scheduleCloudSave);
+// ปุ่ม "เปลี่ยนเวร / Commit" แก้ข้อมูลด้วยการกดปุ่ม ไม่ใช่การพิมพ์หรือเลือก จึงต้องนับด้วย
+document.addEventListener("click", (e)=>{ if(e.target.closest && e.target.closest(".btn-swap")) scheduleCloudSave(e); });
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "hidden") flushOnLeave();
+});
+
+function currentYBE(){ return parseInt(document.getElementById("year-input").value); }
+function currentMIdx(){ return parseInt(document.getElementById("month-select").value); }
+function defaultDayFor(yBE, mIdx){
+  const n = new Date();
+  return (n.getFullYear() + 543 === yBE && n.getMonth() === mIdx) ? n.getDate() : 1;   // เดือนนี้ -> วันนี้ เดือนอื่น -> วันที่ 1
+}
+function goToDay(day, scroll){
+  day = Math.max(1, Math.min(NUM_DAYS, parseInt(day) || 1));
+  document.getElementById("date-pick").value = isoOf(currentYBE(), currentMIdx(), day);
+  document.getElementById("work-date-pick").value = isoOf(currentYBE(), currentMIdx(), day);   // ปฏิทินแท็บมอบหมายตามกัน
+  document.getElementById("work-day-input").value = day;
+  renderWorkDay();
+  const el = document.getElementById("assignday-" + day);
+  if(scroll !== false && el && currentTab !== "work") el.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+/* เปลี่ยนเดือน: บันทึกของค้างในเดือนเดิมก่อน -> ล้างหน้าจอเป็นเดือนใหม่ (ไม่ให้ชื่อเดือนเก่าค้าง) -> โหลดเดือนใหม่ -> ไปวันที่ที่ต้องการ */
+async function switchToMonth(yBE, mIdx, day, scroll){
+  if(!authed()) return;
+  const seq = ++switchSeq;
+  clearTimeout(cloudTimer);
+  if(cloudDirty && loadedKey && loadOk){ cloudDirty = false; await cloudSave(); } else { cloudDirty = false; }
+  if(seq !== switchSeq) return;
+
+  loadingNow = true; loadedKey = ""; loadOk = false; monthBase = null;
+  document.body.classList.add("locked-ui");              // ยังไม่โหลดเสร็จ ห้ามพิมพ์ (กันพิมพ์ลงตารางที่จะถูกแทนที่)
+  document.getElementById("month-select").value = String(mIdx);
+  document.getElementById("year-input").value = String(yBE);
+  assign = {}; changeLog = [];
+  document.getElementById("num-days").value = String(daysInMonthBE(yBE, mIdx));
+  generateAll();
+  setSync(`กำลังโหลด ${getMonthLabel()}...`, "busy");
+
+  const key = keyFor(yBE, mIdx);
+  let r = await loadMonth(key);
+  if(r.ok && !r.found){                                  // ยังไม่มีในรหัสใหม่: ลองรหัสแบบเดิม
+    const r2 = await loadMonth(legacyKeyFor(yBE, mIdx));
+    if(r2.ok && r2.found) r = r2;
+  }
+  if(seq !== switchSeq) return;                       // มีการเปลี่ยนเดือนซ้อนเข้ามา ทิ้งผลนี้
+
+  loadingNow = false; lastLoadError = null;
+  if(r.ok){
+    const allLoc = localAll();
+    const loc = allLoc[key] || allLoc[legacyKeyFor(yBE, mIdx)];
+    const pending = loc && !loc.synced && loc.data && loc.data.assign;    // มีข้อมูลที่แก้ไว้แล้วแต่ยังไม่ขึ้นส่วนกลาง
+    if(pending){
+      applyLoadedMonth(loc.data);
+      monthBase = loc.base || null;                    // ฉบับตั้งต้นตอนแก้ (ถ้ามี) เพื่อรวมกับของเครื่องอื่นได้ถูก
+      loadedKey = key; loadOk = true;
+      setSync(`กู้คืนข้อมูล ${getMonthLabel()} ที่ค้างในเครื่อง กำลังส่งขึ้นส่วนกลาง...`, "busy");
+      lastEditT = Date.now();
+      cloudSave();
+    } else if(r.found){ applyLoadedMonth(r.data); monthBase = JSON.stringify(currentPayload()); setSync(`โหลดเดือน ${getMonthLabel()} แล้ว — ${new Date().toLocaleTimeString("th-TH")}`, "ok"); }
+    else { monthBase = JSON.stringify(currentPayload()); setSync(`ยังไม่มีข้อมูลของ ${getMonthLabel()} ในส่วนกลาง`, "ok"); }
+    loadedKey = key; loadOk = true;
+    document.body.classList.remove("locked-ui");
+  } else {
+    loadedKey = key; loadOk = false; lastLoadError = r;
+    if(r.corrupt) setSync(`ข้อมูล ${getMonthLabel()} ในส่วนกลางเสียหาย อ่านไม่ได้ — แตะที่นี่เพื่อล้างและเริ่มเดือนนี้ใหม่`, "bad");
+    else setSync(`โหลด ${getMonthLabel()} ไม่สำเร็จ: ${r.error} — ยังไม่บันทึก แตะที่นี่เพื่อลองใหม่`, "bad");
+  }
+  goToDay(day || defaultDayFor(yBE, mIdx), scroll);
+}
+
+// เลือกเดือน/ปีในหน้าตั้งค่า
+["month-select","year-input"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", ()=>{
+    const y = currentYBE(), m = currentMIdx();
+    if(!(y >= 2500 && y <= 2700) || isNaN(m)) return;
+    switchToMonth(y, m);
+  });
+});
+// เลือกวันที่จากปฏิทิน: ข้ามเดือนได้ ระบบโหลดเดือนนั้นให้แล้วพาไปวันที่เลือก
+document.getElementById("date-pick").addEventListener("change", (e)=>{
+  const v = e.target.value;                           // รูปแบบ yyyy-mm-dd (ค.ศ.)
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  const [yy, mm, dd] = v.split("-").map(Number);
+  const yBE = yy + 543, mIdx = mm - 1;
+  if(loadedKey === keyFor(yBE, mIdx) && loadOk) goToDay(dd);
+  else switchToMonth(yBE, mIdx, dd);
+});
+document.getElementById("btn-restore-oct").addEventListener("click", restoreOct2569);
+// ปฏิทินแท็บมอบหมาย: เหมือนปฏิทินแท็บ Assign (ข้ามเดือนได้)
+document.getElementById("work-date-pick").addEventListener("change", (e)=>{
+  const v = e.target.value;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  const [yy, mm, dd] = v.split("-").map(Number);
+  const yBE = yy + 543, mIdx = mm - 1;
+  if(loadedKey === keyFor(yBE, mIdx) && loadOk) goToDay(dd);
+  else switchToMonth(yBE, mIdx, dd);
+});
+// โหลดไม่สำเร็จ: แตะแถบสถานะเพื่อลองใหม่
+async function resetDamagedMonth(){
+  const key = loadedKey, label = getMonthLabel();
+  if(!key) return;
+  if(!confirm(`ข้อมูล ${label} ในส่วนกลางเสียหาย (ถูกตัดกลางคัน) อ่านกลับมาไม่ได้\n\nล้างข้อมูลเดือนนี้แล้วเริ่มใหม่หรือไม่?\n(ข้อมูลเดือนอื่นไม่ถูกแตะ)`)) return;
+  setSync("กำลังล้างข้อมูลที่เสียหาย...", "busy");
+  try{
+    const res = await fetch(CLOUD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ pw: AUTH_PW, kind: CLOUD_KIND, date: key, data: {} })
+    });
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "ล้างไม่สำเร็จ");
+  }catch(err){ setSync("ล้างข้อมูลไม่สำเร็จ: " + (err.message || err), "bad"); return; }
+  switchToMonth(currentYBE(), currentMIdx());
+}
+document.getElementById("sync-status").addEventListener("click", ()=>{
+  const el = document.getElementById("sync-status");
+  if(loadOk || loadingNow){ if(el.className === "bad" && el.title) alert(el.title); return; }   // บันทึกไม่สำเร็จ: แสดงสาเหตุ
+  if(lastLoadError && lastLoadError.corrupt) resetDamagedMonth();
+  else switchToMonth(currentYBE(), currentMIdx());
+});
+
+// เปิดหน้า: เดือนปัจจุบัน และพาไปวันนี้
+(function boot(){
+  // เปิดหน้า: กลับไปแท็บที่ใช้ล่าสุด
+  let last = null; try{ last = localStorage.getItem("rcu_assign_last_tab"); }catch(e){}
+  if(["assign","work","summary","history"].indexOf(last) >= 0 && last !== currentTab){
+    const b = document.querySelector('nav.tabs button[data-tab="' + last + '"]'); if(b) b.click();
+  }
+  const n = new Date();
+  switchToMonth(n.getFullYear() + 543, n.getMonth(), n.getDate(), false);   // ไม่เลื่อนจอเองตอนเปิด
+})();
+</script>
+</body>
+</html>
